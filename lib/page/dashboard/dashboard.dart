@@ -13,6 +13,7 @@ class DashboardPage extends StatelessWidget {
 
     return Scaffold(
       body: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16.0),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -25,17 +26,11 @@ class DashboardPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildWelcomeMessage(availableHeight),
-            const SizedBox(height: 8),
             _buildSectionTitle('快速访问'),
-            const SizedBox(height: 8),
             _buildQuickAccessGrid(context, availableHeight),
-            const SizedBox(height: 8),
             _buildSectionTitle('今日统计'),
-            const SizedBox(height: 8),
             _buildDailyStats(availableHeight),
-            const SizedBox(height: 8),
             _buildSectionTitle('数据趋势（最近7天）'),
-            const SizedBox(height: 8),
             _buildTrendChartArea(availableHeight),
           ],
         ),
@@ -46,7 +41,9 @@ class DashboardPage extends StatelessWidget {
   Widget _buildWelcomeMessage(double availableHeight) {
     return Container(
       height: availableHeight * 0.1,
+      width: double.infinity,
       alignment: Alignment.centerLeft,
+      margin: EdgeInsetsGeometry.only(bottom: 8),
       child: RichText(
         text: TextSpan(
           style: const TextStyle(
@@ -71,15 +68,16 @@ class DashboardPage extends StatelessWidget {
     return Text(
       title,
       style: const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.bold,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
         color: Colors.grey,
       ),
     );
   }
 
   Widget _buildQuickAccessGrid(BuildContext context, double availableHeight) {
-    return SizedBox(
+    return Container(
+      margin: EdgeInsetsGeometry.only(top: 8, bottom: 8),
       height: availableHeight * 0.16,
       child: GridView.count(
         physics: const NeverScrollableScrollPhysics(),
@@ -124,7 +122,8 @@ class DashboardPage extends StatelessWidget {
   }
 
   Widget _buildDailyStats(double availableHeight) {
-    return SizedBox(
+    return Container(
+      margin: EdgeInsetsGeometry.only(top: 8, bottom: 16),
       height: availableHeight * 0.34,
       child: Column(
         children: [
@@ -151,7 +150,9 @@ class DashboardPage extends StatelessWidget {
   Widget _buildTrendChartArea(double availableHeight) {
     return Container(
       height: availableHeight * 0.26,
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 8, left: 8, right: 8),
+      margin: const EdgeInsetsGeometry.only(top: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -168,11 +169,7 @@ class DashboardPage extends StatelessWidget {
           ),
         ],
       ),
-      child: WeeklyLineChart(
-        weeklyData: [5, 12, 8, 15, 20, 25, 18],
-        height: availableHeight * 0.24,
-        primaryColor: Colors.blueAccent,
-      ),
+      child: TrendLineChart(),
     );
   }
 
