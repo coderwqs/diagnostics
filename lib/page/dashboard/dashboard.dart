@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'charts/trend_chart.dart';
+import 'package:diagnosis/l10n/app_localizations.dart';
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
+    final l10n = AppLocalizations.of(context)!;
+
+    final screenHeight = MediaQuery.of(context).size.height;
     final appBarHeight = AppBar().preferredSize.height;
-    final statusBarHeight = MediaQuery
-        .of(context)
-        .padding
-        .top;
+    final statusBarHeight = MediaQuery.of(context).padding.top;
     final availableHeight = screenHeight - appBarHeight - statusBarHeight - 32;
 
     return Scaffold(
@@ -35,15 +32,15 @@ class DashboardPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildWelcomeMessage(availableHeight),
+              _buildWelcomeMessage(context, availableHeight, l10n),
               const SizedBox(height: 24),
-              _buildSectionTitle('快速访问'),
-              _buildQuickAccessGrid(context, availableHeight),
+              _buildSectionTitle(l10n.quickAccess),
+              _buildQuickAccessGrid(context, availableHeight, l10n),
               const SizedBox(height: 24),
-              _buildSectionTitle('今日统计'),
-              _buildDailyStats(availableHeight),
+              _buildSectionTitle(l10n.todayStatistics),
+              _buildDailyStats(availableHeight, l10n),
               const SizedBox(height: 24),
-              _buildSectionTitle('数据趋势（最近7天）'),
+              _buildSectionTitle('${l10n.dataTrend}（${l10n.recentSevenDay}）'),
               _buildTrendChartArea(availableHeight),
             ],
           ),
@@ -52,7 +49,13 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildWelcomeMessage(double availableHeight) {
+  Widget _buildWelcomeMessage(
+    BuildContext context,
+    double availableHeight,
+    AppLocalizations l10n,
+  ) {
+    final now = DateTime.now();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -64,8 +67,8 @@ class DashboardPage extends StatelessWidget {
               color: Colors.black87,
               height: 1.3,
             ),
-            children: const [
-              TextSpan(text: '欢迎回来，\n'),
+            children: [
+              TextSpan(text: '${l10n.welcomeBack}，\n'),
               TextSpan(
                 text: 'Super Coder',
                 style: TextStyle(
@@ -85,11 +88,7 @@ class DashboardPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          '今天是 ${DateTime
-              .now()
-              .month}月${DateTime
-              .now()
-              .day}日，祝您有美好的一天！',
+          AppLocalizations.of(context)!.greetingWithDate(now.month, now.day),
           style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
       ],
@@ -111,7 +110,11 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickAccessGrid(BuildContext context, double availableHeight) {
+  Widget _buildQuickAccessGrid(
+    BuildContext context,
+    double availableHeight,
+    AppLocalizations l10n,
+  ) {
     return Container(
       height: availableHeight * 0.18,
       margin: const EdgeInsets.only(top: 8, bottom: 8),
@@ -127,28 +130,28 @@ class DashboardPage extends StatelessWidget {
           _buildFeatureButton(
             context,
             Icons.settings_outlined,
-            '设备管理',
+            l10n.deviceManagement,
             Colors.blueAccent,
             '/collection',
           ),
           _buildFeatureButton(
             context,
             Icons.analytics_outlined,
-            '数据分析',
+            l10n.dataAnalysis,
             Colors.green,
             '/analysis',
           ),
           _buildFeatureButton(
             context,
             Icons.notifications_outlined,
-            '告警中心',
+            l10n.alarmCenter,
             Colors.orange,
             '/alert',
           ),
           _buildFeatureButton(
             context,
             Icons.people_outline,
-            '用户管理',
+            l10n.userManagement,
             Colors.purple,
             '/settings',
           ),
@@ -157,7 +160,7 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDailyStats(double availableHeight) {
+  Widget _buildDailyStats(double availableHeight, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.only(top: 8, bottom: 16),
       height: availableHeight * 0.34,
@@ -167,12 +170,16 @@ class DashboardPage extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: _buildStatCard('设备总数', '86', Icons.devices_other),
+                  child: _buildStatCard(
+                    l10n.deviceTotal,
+                    '86',
+                    Icons.devices_other,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildStatCard(
-                    '在线设备',
+                    l10n.onlineDevice,
                     '72',
                     Icons.check_circle_outlined,
                   ),
@@ -183,7 +190,10 @@ class DashboardPage extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: _buildStatCard(
-                '今日告警', '3', Icons.warning_amber_outlined),
+              l10n.todayAlarm,
+              '3',
+              Icons.warning_amber_outlined,
+            ),
           ),
         ],
       ),
@@ -217,11 +227,13 @@ class DashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureButton(BuildContext context,
-      IconData icon,
-      String title,
-      Color color,
-      String route,) {
+  Widget _buildFeatureButton(
+    BuildContext context,
+    IconData icon,
+    String title,
+    Color color,
+    String route,
+  ) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return Material(
@@ -232,10 +244,10 @@ class DashboardPage extends StatelessWidget {
             splashColor: color.withValues(alpha: 0.1),
             highlightColor: color.withValues(alpha: 0.05),
             child: Container(
-              margin: const EdgeInsets.all(4), // 为阴影留出空间
+              margin: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12), // 比InkWell小2px避免溢出
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.grey.withValues(alpha: 0.1),
@@ -255,13 +267,9 @@ class DashboardPage extends StatelessWidget {
                         color: color.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
-                          icon,
-                          color: color,
-                          size: 24
-                      ),
+                      child: Icon(icon, color: color, size: 24),
                     ),
-                    const SizedBox(height: 8,),
+                    const SizedBox(height: 8),
                     Flexible(
                       child: Text(
                         title,

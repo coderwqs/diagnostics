@@ -1,16 +1,21 @@
+import 'package:diagnosis/main.dart';
 import 'package:flutter/material.dart';
+import 'package:diagnosis/l10n/app_localizations.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SystemSettingsPage extends StatelessWidget {
   const SystemSettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '系统设置',
+          AppLocalizations.of(context)!.systemSetting,
+          // '系统设置',
           style: textTheme.headlineSmall?.copyWith(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -33,22 +38,15 @@ class SystemSettingsPage extends StatelessWidget {
           children: [
             _buildSettingsSection(
               context,
-              title: "个性化设置",
+              title: l10n.personalizedSettings,
               children: [
-                _buildSettingsItem(
-                  context,
-                  icon: Icons.language,
-                  title: "语言设置",
-                  subtitle: "选择应用语言",
-                  iconColor: Colors.blue, // 保持原有图标色
-                  onTap: () {},
-                ),
+                _buildLanguageSettingsItem(context),
                 _buildSettingsItem(
                   context,
                   icon: Icons.notifications,
-                  title: "通知设置",
-                  subtitle: "管理通知选项",
-                  iconColor: Colors.orange, // 保持原有图标色
+                  title: l10n.notificationSettings,
+                  subtitle: l10n.manageNotification,
+                  iconColor: Colors.orange,
                   onTap: () {},
                 ),
               ],
@@ -56,22 +54,22 @@ class SystemSettingsPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSettingsSection(
               context,
-              title: "账户与隐私",
+              title: l10n.accountsAndPrivacy,
               children: [
                 _buildSettingsItem(
                   context,
                   icon: Icons.account_circle,
-                  title: "账户管理",
-                  subtitle: "管理用户账户",
-                  iconColor: Colors.purple, // 保持原有图标色
+                  title: l10n.accountManagement,
+                  subtitle: l10n.manageAccount,
+                  iconColor: Colors.purple,
                   onTap: () {},
                 ),
                 _buildSettingsItem(
                   context,
                   icon: Icons.privacy_tip,
-                  title: "隐私设置",
-                  subtitle: "管理隐私选项",
-                  iconColor: Colors.green, // 保持原有图标色
+                  title: l10n.privacySettings,
+                  subtitle: l10n.managePrivacy,
+                  iconColor: Colors.green,
                   onTap: () {},
                 ),
               ],
@@ -79,14 +77,14 @@ class SystemSettingsPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSettingsSection(
               context,
-              title: "关于",
+              title: l10n.about,
               children: [
                 _buildSettingsItem(
                   context,
                   icon: Icons.info,
-                  title: "版本信息",
-                  subtitle: "查看应用版本",
-                  iconColor: Colors.grey, // 保持原有图标色
+                  title: l10n.versionInformation,
+                  subtitle: l10n.viewVersion,
+                  iconColor: Colors.grey,
                   onTap: () {},
                 ),
               ],
@@ -98,10 +96,10 @@ class SystemSettingsPage extends StatelessWidget {
   }
 
   Widget _buildSettingsSection(
-      BuildContext context, {
-        required String title,
-        required List<Widget> children,
-      }) {
+    BuildContext context, {
+    required String title,
+    required List<Widget> children,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -110,33 +108,31 @@ class SystemSettingsPage extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.grey.shade700, // 保持原有文字颜色
+              color: Colors.grey.shade700,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         Card(
           elevation: 1,
-          color: Colors.white, // 卡片背景保持白色
+          color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );
   }
 
   Widget _buildSettingsItem(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-        required Color iconColor, // 原有图标颜色参数
-        required VoidCallback onTap,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
@@ -147,10 +143,10 @@ class SystemSettingsPage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.2), // 保持原有图标背景透明度
+                color: iconColor.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 20, color: iconColor), // 保持原有图标颜色
+              child: Icon(icon, size: 20, color: iconColor),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -161,26 +157,91 @@ class SystemSettingsPage extends StatelessWidget {
                     title,
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       fontWeight: FontWeight.w500,
-                      color: Colors.black87, // 保持原有标题颜色
+                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey.shade600, // 保持原有副标题颜色
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: Colors.grey.shade400, // 保持原有箭头颜色
-            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400),
           ],
         ),
       ),
+    );
+  }
+
+  void _showLanguageSelectionDialog(BuildContext context) {
+    final currentLanguageCode = Localizations.localeOf(context).languageCode;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context)!.selectLanguage),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile(
+                value: 'zh',
+                groupValue: currentLanguageCode,
+                title: Text(AppLocalizations.of(context)!.chinese),
+                onChanged: (value) => _changeLanguage(context, 'zh'),
+              ),
+              RadioListTile(
+                value: 'en',
+                groupValue: currentLanguageCode,
+                title: Text(AppLocalizations.of(context)!.english),
+                onChanged: (value) => _changeLanguage(context, 'en'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSettingsItem(BuildContext context) {
+    final currentLanguageCode = Localizations.localeOf(context).languageCode;
+    final languageName = {
+      'zh': AppLocalizations.of(context)!.chinese,
+      'en': AppLocalizations.of(context)!.english,
+      'ja': AppLocalizations.of(context)!.japanese,
+    }[currentLanguageCode]!;
+
+    return _buildSettingsItem(
+      context,
+      icon: Icons.language,
+      title: AppLocalizations.of(context)!.languageSettings,
+      subtitle: AppLocalizations.of(context)!.currentLanguage(languageName),
+      iconColor: Colors.blue,
+      onTap: () => _showLanguageSelectionDialog(context),
+    );
+  }
+
+  void _changeLanguage(BuildContext context, String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', languageCode);
+
+    // 重建MaterialApp
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => DiagnosticsApp(locale: Locale(languageCode)),
+      ),
+      (route) => false,
     );
   }
 }

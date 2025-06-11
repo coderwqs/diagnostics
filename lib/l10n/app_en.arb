@@ -1,3 +1,45 @@
 {
-    "helloWorld": "Hello World!"
+    "@@locale": "en",
+    "appTitle": "Super Diagnosis",
+    "systemSetting": "System Settings",
+    "languageSettings": "Language Settings",
+    "notificationSettings": "Notification Settings",
+    "accountManagement": "Account Management",
+    "privacySettings": "Privacy Settings",
+    "versionInformation": "Version Information",
+    "personalizedSettings": "Personalized Settings",
+    "accountsAndPrivacy": "Accounts & Privacy",
+    "about": "About",
+    "currentLanguage": "Current language: {language}",
+    "selectLanguage": "Select Language",
+    "manageNotification": "Management notification options",
+    "manageAccount": "Manage user accounts",
+    "managePrivacy": "Manage privacy options",
+    "viewVersion": "View the application version",
+    "cancel": "Cancel",
+    "chinese": "Chinese",
+    "english": "English",
+    "japanese": "Japanese",
+    "deviceManagement": "Device Management",
+    "deviceTotal": "Total Device",
+    "onlineDevice": "Online Device",
+    "dataAnalysis": "Data Analysis",
+    "alarmCenter": "Alarm Center",
+    "todayAlarm": "Today's Alarm",
+    "todayStatistics": "Today's Statistics",
+    "userManagement": "User Management",
+    "quickAccess": "Quick Access",
+    "dataTrend": "Data Trend",
+    "recentSevenDay": "The recent 7 days",
+    "welcomeBack": "Welcome Back",
+    "greetingWithDate": "Today is {month}/{day}, wish you a nice day!",
+    "@greetingWithDate": {
+        "description": "Greeting with current date, {month} for month, {day} for day",
+        "placeholders": {
+            "month": {
+            },
+            "day": {
+            }
+        }
+    }
 }

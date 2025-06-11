@@ -37,8 +37,10 @@ class DataCollectionPage extends StatelessWidget {
                 icon: Icons.graphic_eq,
                 title: "实时数据采集",
                 subtitle: "监控实时数据流",
-                color: Colors.blue.shade100, // 卡片背景改为淡蓝色
-                iconColor: Colors.blue, // 保留原有图标色
+                color: Colors.blue.shade100,
+                // 卡片背景改为淡蓝色
+                iconColor: Colors.blue,
+                // 保留原有图标色
                 onTap: () {},
               ),
               const SizedBox(height: 12),
@@ -89,20 +91,18 @@ class DataCollectionPage extends StatelessWidget {
   }
 
   Widget _buildFeatureCard(
-      BuildContext context, {
-        required IconData icon,
-        required String title,
-        required String subtitle,
-        required Color color,
-        required Color iconColor,
-        required VoidCallback onTap,
-      }) {
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
     return Card(
       elevation: 2,
       color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
@@ -116,10 +116,7 @@ class DataCollectionPage extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon,
-                  size: 24,
-                  color: iconColor,
-                ),
+                child: Icon(icon, size: 24, color: iconColor),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -142,10 +139,7 @@ class DataCollectionPage extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: Colors.grey.shade400,
-              ),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400),
             ],
           ),
         ),

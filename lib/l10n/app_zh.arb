@@ -1,3 +1,45 @@
 {
-    "helloWorld":"你好，世界"
+  "@@locale": "zh",
+  "appTitle": "超级分析",
+  "systemSetting": "系统设置",
+  "languageSettings": "语言设置",
+  "notificationSettings": "通知设置",
+  "accountManagement": "账户管理",
+  "privacySettings": "隐私设置",
+  "versionInformation": "版本信息",
+  "personalizedSettings": "个性化设置",
+  "accountsAndPrivacy": "账户与隐私",
+  "about": "关于",
+  "currentLanguage": "当前语言: {language}",
+  "manageNotification": "管理通知选项",
+  "manageAccount": "管理用户账户",
+  "managePrivacy": "管理隐私选项",
+  "viewVersion": "查看应用版本",
+  "selectLanguage": "选择语言",
+  "cancel": "取消",
+  "chinese": "简体中文",
+  "english": "英文",
+  "japanese": "日文",
+  "deviceManagement": "设备管理",
+  "deviceTotal": "设备总数",
+  "onlineDevice": "在线设备",
+  "dataAnalysis": "数据分析",
+  "alarmCenter": "告警中心",
+  "todayAlarm": "今日告警",
+  "todayStatistics": "今日统计",
+  "userManagement": "用户管理",
+  "quickAccess": "快速访问",
+  "dataTrend": "数据趋势",
+  "recentSevenDay": "最近7天",
+  "welcomeBack": "欢迎回来",
+  "greetingWithDate": "今天是 {month}月{day}日，祝您有美好的一天！",
+  "@greetingWithDate": {
+    "description": "包含当前日期的问候语，{month}代表月份，{day}代表日期",
+    "placeholders": {
+      "month": {
+      },
+      "day": {
+      }
+    }
+  }
 }
