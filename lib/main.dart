@@ -3,7 +3,6 @@ import 'package:diagnosis/page/devices/devices.dart';
 import 'package:diagnosis/page/diagnostics/diagnostics.dart';
 import 'package:diagnosis/page/settings/settings.dart';
 import 'package:flutter/material.dart';
-import 'home.dart';
 import 'page/dashboard/dashboard.dart';
 
 void main() {
