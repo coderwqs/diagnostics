@@ -1,4 +1,5 @@
 import 'package:diagnosis/page/alarms/alarms.dart';
+import 'package:diagnosis/page/devices/components/devices_management.dart';
 import 'package:diagnosis/page/devices/devices.dart';
 import 'package:diagnosis/page/diagnostics/diagnostics.dart';
 import 'package:diagnosis/page/settings/settings.dart';
@@ -34,11 +35,13 @@ class DiagnosticsApp extends StatelessWidget {
       routes: {
         '/': (context) => DashboardPage(),
         '/settings': (context) => SystemSettingsPage(),
-        '/collection': (context) => DataCollectionPage(),
+        '/device': (context) => DataCollectionPage(),
         '/analysis': (context) => DataAnalysisPage(),
         '/alert': (context) => AlertManagementPage(),
+
+        '/device/list': (context) => DeviceManagementPage(),
       },
-      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.app_title,
       navigatorObservers: [RouteObserver<ModalRoute>()],
     );
   }

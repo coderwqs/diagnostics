@@ -34,6 +34,19 @@ class DataCollectionPage extends StatelessWidget {
             children: [
               _buildFeatureCard(
                 context,
+                icon: Icons.devices,
+                title: "设备管理",
+                subtitle: "查看设备列表信息",
+                color: Colors.blue.shade100,
+                // 卡片背景改为淡蓝色
+                iconColor: Colors.blue,
+                // 保留原有图标色
+                onTap: () {
+                  Navigator.pushNamed(context, '/device/list');
+                },
+              ),
+              _buildFeatureCard(
+                context,
                 icon: Icons.graphic_eq,
                 title: "实时数据采集",
                 subtitle: "监控实时数据流",

@@ -1,0 +1,9 @@
+display_name: Diagnostics
+publisher_display_name: China
+identity_name: linkedti.diagnostics
+msix_version: 1.0.0.0
+certificate_path: path/to/your/certificate.pfx
+certificate_password: yourpassword
+logo_path: assets/logo.png
+capabilities:
+  - internetClient

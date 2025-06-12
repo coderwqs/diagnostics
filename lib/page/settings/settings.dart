@@ -14,7 +14,7 @@ class SystemSettingsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          AppLocalizations.of(context)!.systemSetting,
+          AppLocalizations.of(context)!.settings,
           // '系统设置',
           style: textTheme.headlineSmall?.copyWith(
             fontSize: 18,
@@ -38,14 +38,14 @@ class SystemSettingsPage extends StatelessWidget {
           children: [
             _buildSettingsSection(
               context,
-              title: l10n.personalizedSettings,
+              title: l10n.settings_group_personalized,
               children: [
                 _buildLanguageSettingsItem(context),
                 _buildSettingsItem(
                   context,
                   icon: Icons.notifications,
-                  title: l10n.notificationSettings,
-                  subtitle: l10n.manageNotification,
+                  title: l10n.settings_notification,
+                  subtitle: l10n.settings_manage_notification,
                   iconColor: Colors.orange,
                   onTap: () {},
                 ),
@@ -54,21 +54,21 @@ class SystemSettingsPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSettingsSection(
               context,
-              title: l10n.accountsAndPrivacy,
+              title: l10n.settings_group_accounts,
               children: [
                 _buildSettingsItem(
                   context,
                   icon: Icons.account_circle,
-                  title: l10n.accountManagement,
-                  subtitle: l10n.manageAccount,
+                  title: l10n.settings_account,
+                  subtitle: l10n.settings_manage_account,
                   iconColor: Colors.purple,
                   onTap: () {},
                 ),
                 _buildSettingsItem(
                   context,
                   icon: Icons.privacy_tip,
-                  title: l10n.privacySettings,
-                  subtitle: l10n.managePrivacy,
+                  title: l10n.settings_privacy,
+                  subtitle: l10n.settings_manage_privacy,
                   iconColor: Colors.green,
                   onTap: () {},
                 ),
@@ -77,13 +77,13 @@ class SystemSettingsPage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildSettingsSection(
               context,
-              title: l10n.about,
+              title: l10n.settings_group_about,
               children: [
                 _buildSettingsItem(
                   context,
                   icon: Icons.info,
-                  title: l10n.versionInformation,
-                  subtitle: l10n.viewVersion,
+                  title: l10n.settings_version,
+                  subtitle: l10n.settings_view_version,
                   iconColor: Colors.grey,
                   onTap: () {},
                 ),
@@ -183,7 +183,7 @@ class SystemSettingsPage extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.selectLanguage),
+        title: Text(AppLocalizations.of(context)!.settings_select_language),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
@@ -192,13 +192,13 @@ class SystemSettingsPage extends StatelessWidget {
               RadioListTile(
                 value: 'zh',
                 groupValue: currentLanguageCode,
-                title: Text(AppLocalizations.of(context)!.chinese),
+                title: Text(AppLocalizations.of(context)!.settings_language_chinese),
                 onChanged: (value) => _changeLanguage(context, 'zh'),
               ),
               RadioListTile(
                 value: 'en',
                 groupValue: currentLanguageCode,
-                title: Text(AppLocalizations.of(context)!.english),
+                title: Text(AppLocalizations.of(context)!.settings_language_english),
                 onChanged: (value) => _changeLanguage(context, 'en'),
               ),
             ],
@@ -207,7 +207,7 @@ class SystemSettingsPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.cancel),
+            child: Text(AppLocalizations.of(context)!.app_cancel),
           ),
         ],
       ),
@@ -217,16 +217,15 @@ class SystemSettingsPage extends StatelessWidget {
   Widget _buildLanguageSettingsItem(BuildContext context) {
     final currentLanguageCode = Localizations.localeOf(context).languageCode;
     final languageName = {
-      'zh': AppLocalizations.of(context)!.chinese,
-      'en': AppLocalizations.of(context)!.english,
-      'ja': AppLocalizations.of(context)!.japanese,
+      'zh': AppLocalizations.of(context)!.settings_language_chinese,
+      'en': AppLocalizations.of(context)!.settings_language_english,
     }[currentLanguageCode]!;
 
     return _buildSettingsItem(
       context,
       icon: Icons.language,
-      title: AppLocalizations.of(context)!.languageSettings,
-      subtitle: AppLocalizations.of(context)!.currentLanguage(languageName),
+      title: AppLocalizations.of(context)!.settings_language,
+      subtitle: AppLocalizations.of(context)!.settings_current_language(languageName),
       iconColor: Colors.blue,
       onTap: () => _showLanguageSelectionDialog(context),
     );

@@ -34,13 +34,13 @@ class DashboardPage extends StatelessWidget {
             children: [
               _buildWelcomeMessage(context, availableHeight, l10n),
               const SizedBox(height: 24),
-              _buildSectionTitle(l10n.quickAccess),
+              _buildSectionTitle(l10n.dashboard_quick_access),
               _buildQuickAccessGrid(context, availableHeight, l10n),
               const SizedBox(height: 24),
-              _buildSectionTitle(l10n.todayStatistics),
+              _buildSectionTitle(l10n.dashboard_today_statistics),
               _buildDailyStats(availableHeight, l10n),
               const SizedBox(height: 24),
-              _buildSectionTitle('${l10n.dataTrend}（${l10n.recentSevenDay}）'),
+              _buildSectionTitle('${l10n.dashboard_data_trend}（${l10n.dashboard_recent_seven_day}）'),
               _buildTrendChartArea(availableHeight),
             ],
           ),
@@ -68,7 +68,7 @@ class DashboardPage extends StatelessWidget {
               height: 1.3,
             ),
             children: [
-              TextSpan(text: '${l10n.welcomeBack}，\n'),
+              TextSpan(text: '${l10n.dashboard_welcome_back}，\n'),
               TextSpan(
                 text: 'Super Coder',
                 style: TextStyle(
@@ -88,7 +88,7 @@ class DashboardPage extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         Text(
-          AppLocalizations.of(context)!.greetingWithDate(now.month, now.day),
+          AppLocalizations.of(context)!.dashboard_greetingWithDate(now.month, now.day),
           style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
         ),
       ],
@@ -130,28 +130,28 @@ class DashboardPage extends StatelessWidget {
           _buildFeatureButton(
             context,
             Icons.settings_outlined,
-            l10n.deviceManagement,
+            l10n.dashboard_device_management,
             Colors.blueAccent,
-            '/collection',
+            '/device',
           ),
           _buildFeatureButton(
             context,
             Icons.analytics_outlined,
-            l10n.dataAnalysis,
+            l10n.dashboard_data_analysis,
             Colors.green,
             '/analysis',
           ),
           _buildFeatureButton(
             context,
             Icons.notifications_outlined,
-            l10n.alarmCenter,
+            l10n.dashboard_alarm_center,
             Colors.orange,
             '/alert',
           ),
           _buildFeatureButton(
             context,
             Icons.people_outline,
-            l10n.userManagement,
+            l10n.dashboard_user_management,
             Colors.purple,
             '/settings',
           ),
@@ -171,7 +171,7 @@ class DashboardPage extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildStatCard(
-                    l10n.deviceTotal,
+                    l10n.dashboard_device_total,
                     '86',
                     Icons.devices_other,
                   ),
@@ -179,7 +179,7 @@ class DashboardPage extends StatelessWidget {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildStatCard(
-                    l10n.onlineDevice,
+                    l10n.dashboard_online_device,
                     '72',
                     Icons.check_circle_outlined,
                   ),
@@ -190,7 +190,7 @@ class DashboardPage extends StatelessWidget {
           const SizedBox(height: 16),
           Expanded(
             child: _buildStatCard(
-              l10n.todayAlarm,
+              l10n.dashboard_today_alarm,
               '3',
               Icons.warning_amber_outlined,
             ),
