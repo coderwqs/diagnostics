@@ -1,6 +1,8 @@
+import 'package:diagnosis/utils/database_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:diagnosis/entity/device.dart';
 
 class DeviceManagementPage extends StatefulWidget {
   const DeviceManagementPage({super.key});
@@ -20,7 +22,15 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   void initState() {
     super.initState();
     _loadDevices();
+    fetchDevices();
     _searchController.addListener(_filterDevices);
+  }
+
+  Future<List<Device>> fetchDevices() async {
+    final db = DatabaseHelper.instance;
+    final deviceList = await db.rawQuery('SELECT * FROM devices');
+    var d = deviceList.map((deviceData) => Device.fromJson(deviceData)).toList();
+    return d;
   }
 
   Future<void> _loadDevices() async {
@@ -30,38 +40,13 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
         Device(
           id: 'DEV-001',
           name: '智能空调',
+          image: '',
           type: '空调',
+          identity: 'identity',
+          secret: 'secret',
           status: DeviceStatus.online,
-          lastActive: DateTime.now().subtract(const Duration(minutes: 5)),
-          topic: 'ac_topic',
-          icon: 'ac_unit'
-        ),
-        Device(
-          id: 'DEV-002',
-          name: '客厅灯光',
-          type: '灯光',
-          status: DeviceStatus.offline,
-          lastActive: DateTime.now().subtract(const Duration(hours: 2)),
-          topic: 'light_topic',
-          icon: 'light'
-        ),
-        Device(
-          id: 'DEV-003',
-          name: '卧室窗帘',
-          type: '窗帘',
-          status: DeviceStatus.online,
-          lastActive: DateTime.now().subtract(const Duration(minutes: 30)),
-          topic: 'curtain_topic',
-          icon: 'camera'
-        ),
-        Device(
-          id: 'DEV-004',
-          name: '厨房摄像头',
-          type: '摄像头',
-          status: DeviceStatus.warning,
-          lastActive: DateTime.now().subtract(const Duration(minutes: 15)),
-          topic: 'camera_topic',
-          icon: 'camera'
+          lastActive: DateTime.now().millisecondsSinceEpoch,
+          createdAt: DateTime.now().millisecondsSinceEpoch,
         ),
       ];
       _filteredDevices = _devices;
@@ -144,7 +129,7 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add),
         onPressed: _addNewDevice,
       ),
     );
@@ -218,14 +203,14 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
         if (d.id == device.id) {
           if (value) {
             // 订阅主题
-            print('已订阅主题: ${device.topic}');
+            print('已订阅主题: ${device.id}');
           } else {
             // 取消订阅
-            print('已取消订阅主题: ${device.topic}');
+            print('已取消订阅主题: ${device.id}');
           }
           return d.copyWith(
             status: value ? DeviceStatus.online : DeviceStatus.offline,
-            lastActive: DateTime.now(),
+            lastActive: DateTime.now().millisecondsSinceEpoch,
           );
         }
         return d;
@@ -300,11 +285,13 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
                       Device(
                         id: 'DEV-${_devices.length + 1}',
                         name: nameController.text,
+                        image: '',
+                        identity: 'identity',
+                        secret: 'secret',
                         type: typeController.text,
                         status: DeviceStatus.online,
-                        lastActive: DateTime.now(),
-                        topic: topicController.text,
-                        icon: selectedIcon,
+                        lastActive: DateTime.now().millisecondsSinceEpoch,
+                        createdAt: DateTime.now().millisecondsSinceEpoch,
                       ),
                     );
                     _filterDevices();
@@ -352,7 +339,14 @@ class DeviceCard extends StatelessWidget {
       elevation: 2,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
-        leading: _buildDeviceIcon(),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            shape: BoxShape.circle,
+          ),
+          child: Icon(Icons.devices, color: Colors.blue),
+        ),
         title: Text(device.name),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,22 +382,6 @@ class DeviceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDeviceIcon() {
-    final iconData = switch (device.icon) {
-      '灯光' => Icons.lightbulb_outline,
-      '空调' => Icons.ac_unit,
-      '摄像头' => Icons.videocam,
-      '窗帘' => Icons.curtains_closed,
-      _ => Icons.devices, // 默认图标
-    };
-
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: Colors.blue[50], shape: BoxShape.circle),
-      child: Icon(iconData, color: Colors.blue),
-    );
-  }
-
   Color _getStatusColor(DeviceStatus status) {
     return switch (status) {
       DeviceStatus.online => Colors.green,
@@ -420,7 +398,8 @@ class DeviceCard extends StatelessWidget {
     };
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(int timestamp) {
+    final time = DateTime.fromMillisecondsSinceEpoch(timestamp);
     final now = DateTime.now();
     final diff = now.difference(time);
 
@@ -511,50 +490,8 @@ class DeviceDetailSheet extends StatelessWidget {
     };
   }
 
-  String _formatTime(DateTime time) {
+  String _formatTime(int timestamp) {
+    final time = DateTime.fromMillisecondsSinceEpoch(timestamp);
     return DateFormat('yyyy-MM-dd HH:mm').format(time);
-  }
-}
-
-// 数据模型
-enum DeviceStatus { online, offline, warning }
-
-class Device {
-  final String id;
-  final String name;
-  final String type; // 使用字符串表示设备类型
-  final DeviceStatus status;
-  final DateTime lastActive;
-  final String topic; // 订阅主题
-  final String icon; // 设备图标
-
-  Device({
-    required this.id,
-    required this.name,
-    required this.type,
-    required this.status,
-    required this.lastActive,
-    required this.topic,
-    required this.icon,
-  });
-
-  Device copyWith({
-    String? id,
-    String? name,
-    String? type,
-    DeviceStatus? status,
-    DateTime? lastActive,
-    String? topic,
-    String? icon,
-  }) {
-    return Device(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      type: type ?? this.type,
-      status: status ?? this.status,
-      lastActive: lastActive ?? this.lastActive,
-      topic: topic ?? this.topic,
-      icon: icon ?? this.icon,
-    );
   }
 }
