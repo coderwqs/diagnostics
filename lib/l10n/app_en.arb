@@ -10,6 +10,8 @@
     "app_add": "Add",
     "app_edit": "Edit",
     "app_back": "Back",
+    "app_open": "Open",
+    "app_close": "Close",
 
     "settings": "System Settings",
     "settings_group_personalized": "Personalized Settings",
@@ -28,6 +30,13 @@
     "settings_view_version": "View the application version",
     "settings_language_chinese": "Chinese",
     "settings_language_english": "English",
+    "settings_about_app": "About the application",
+    "settings_app_name": "Application name",
+    "settings_app_version": "Application version",
+    "settings_app_build": "Construction number",
+    "settings_app_developer": "Developer",
+    "settings_app_connect": "Contact information",
+    "settings_about_tips": "Thank you for using this application! If you have any suggestions or feedback, please feel free to contact us at any time.",
 
     "dashboard_device_management": "Device Management",
     "dashboard_device_total": "Total Device",

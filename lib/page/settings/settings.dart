@@ -1,10 +1,26 @@
 import 'package:diagnosis/main.dart';
 import 'package:flutter/material.dart';
 import 'package:diagnosis/l10n/app_localizations.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class SystemSettingsPage extends StatelessWidget {
+class SystemSettingsPage extends StatefulWidget {
   const SystemSettingsPage({super.key});
+
+  @override
+  State<SystemSettingsPage> createState() => _SystemSettingsStatePage();
+}
+
+class _SystemSettingsStatePage extends State<SystemSettingsPage> {
+  String _appName = '';
+  String _version = '';
+  String _buildNumber = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _getAppInfo();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +101,9 @@ class SystemSettingsPage extends StatelessWidget {
                   title: l10n.settings_version,
                   subtitle: l10n.settings_view_version,
                   iconColor: Colors.grey,
-                  onTap: () {},
+                  onTap: () {
+                    showAboutDialog(context);
+                  },
                 ),
               ],
             ),
@@ -178,12 +196,13 @@ class SystemSettingsPage extends StatelessWidget {
   }
 
   void _showLanguageSelectionDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final currentLanguageCode = Localizations.localeOf(context).languageCode;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context)!.settings_select_language),
+        title: Text(l10n.settings_select_language),
         content: SizedBox(
           width: double.maxFinite,
           child: Column(
@@ -192,13 +211,17 @@ class SystemSettingsPage extends StatelessWidget {
               RadioListTile(
                 value: 'zh',
                 groupValue: currentLanguageCode,
-                title: Text(AppLocalizations.of(context)!.settings_language_chinese),
+                title: Text(
+                  l10n.settings_language_chinese,
+                ),
                 onChanged: (value) => _changeLanguage(context, 'zh'),
               ),
               RadioListTile(
                 value: 'en',
                 groupValue: currentLanguageCode,
-                title: Text(AppLocalizations.of(context)!.settings_language_english),
+                title: Text(
+                  l10n.settings_language_english,
+                ),
                 onChanged: (value) => _changeLanguage(context, 'en'),
               ),
             ],
@@ -207,8 +230,101 @@ class SystemSettingsPage extends StatelessWidget {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context)!.app_cancel),
+            child: Text(l10n.app_cancel),
           ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _getAppInfo() async {
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+
+    setState(() {
+      _appName = packageInfo.appName;
+      _version = packageInfo.version;
+      _buildNumber = packageInfo.buildNumber;
+    });
+  }
+
+  void showAboutDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        elevation: 4,
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.info_outline, size: 48, color: colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                l10n.settings_about_app,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildInfoRow(Icons.apps, l10n.settings_app_name, _appName),
+              _buildInfoRow(Icons.tag, l10n.settings_app_version, _version),
+              _buildInfoRow(Icons.build, l10n.settings_app_build, _buildNumber),
+              const SizedBox(height: 16),
+              _buildInfoRow(Icons.person, l10n.settings_app_developer, 'coderwqs'),
+              _buildInfoRow(Icons.email, l10n.settings_app_connect, 'coderwqs@qq.com'),
+              const SizedBox(height: 20),
+              Text(
+                l10n.settings_about_tips,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurface.withOpacity(0.8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('关闭'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey[600]),
+          const SizedBox(width: 12),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          Text(value),
         ],
       ),
     );
@@ -225,7 +341,9 @@ class SystemSettingsPage extends StatelessWidget {
       context,
       icon: Icons.language,
       title: AppLocalizations.of(context)!.settings_language,
-      subtitle: AppLocalizations.of(context)!.settings_current_language(languageName),
+      subtitle: AppLocalizations.of(
+        context,
+      )!.settings_current_language(languageName),
       iconColor: Colors.blue,
       onTap: () => _showLanguageSelectionDialog(context),
     );

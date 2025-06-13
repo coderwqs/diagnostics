@@ -2,6 +2,7 @@ import 'package:diagnosis/page/alarms/alarms.dart';
 import 'package:diagnosis/page/devices/components/devices_management.dart';
 import 'package:diagnosis/page/devices/devices.dart';
 import 'package:diagnosis/page/diagnostics/diagnostics.dart';
+import 'package:diagnosis/page/settings/components/versions.dart';
 import 'package:diagnosis/page/settings/settings.dart';
 import 'package:flutter/material.dart';
 import 'l10n/app_localizations.dart';
@@ -39,6 +40,7 @@ class DiagnosticsApp extends StatelessWidget {
         '/analysis': (context) => DataAnalysisPage(),
         '/alert': (context) => AlertManagementPage(),
 
+        '/versions': (context) => VersionsPage(),
         '/device/list': (context) => DeviceManagementPage(),
       },
       onGenerateTitle: (context) => AppLocalizations.of(context)!.app_title,

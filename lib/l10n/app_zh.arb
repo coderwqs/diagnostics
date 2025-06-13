@@ -10,6 +10,9 @@
   "app_add": "新增",
   "app_edit": "编辑",
   "app_back": "返回",
+  "app_open": "打开",
+  "app_close": "关闭",
+
 
   "settings": "系统设置",
   "settings_group_personalized": "个性化设置",
@@ -28,6 +31,13 @@
   "settings_select_language": "选择语言",
   "settings_language_chinese": "简体中文",
   "settings_language_english": "英文",
+  "settings_about_app": "关于应用",
+  "settings_app_name": "应用名称",
+  "settings_app_version": "版本号",
+  "settings_app_build": "构建号",
+  "settings_app_developer": "开发者",
+  "settings_app_connect": "联系方式",
+  "settings_about_tips": "感谢您使用本应用！如果您有任何建议或反馈，请随时与我们联系。",
 
   "dashboard_device_management": "设备管理",
   "dashboard_device_total": "设备总数",
