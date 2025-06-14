@@ -12,6 +12,10 @@
     "app_back": "Back",
     "app_open": "Open",
     "app_close": "Close",
+    "app_save": "Save",
+    "app_category": "Category",
+    "app_created_at": "Creation Time",
+    "app_clear_search": "Clear the search conditions",
 
     "settings": "System Settings",
     "settings_group_personalized": "Personalized Settings",
@@ -59,5 +63,36 @@
             "day": {
             }
         }
-    }
+    },
+
+    "devices": "Device",
+    "devices_manage": "Device Management",
+    "devices_type": "Type",
+    "devices_search_tips": "Search for the device name or ID.",
+    "devices_status_all": "All",
+    "devices_status_online": "Online",
+    "devices_status_offline": "Offline",
+    "devices_status_warning": "Warning",
+    "devices_list_empty": "There are no devices available at the moment. Please click to add!",
+    "devices_list_not_found": "No matching device was found.",
+    "devices_id": "Device ID",
+    "devices_name": "Device Name",
+    "devices_identity": "Identity Mark",
+    "devices_secret": "Secret",
+    "devices_last_active": "Final Activity",
+    "devices_control": "Control Device",
+    "devices_start": "Enabled",
+    "devices_stop": "Disabled",
+    "devices_add": "Add Device",
+    "devices_add_device": "Add New Device",
+    "devices_add_tips": "Such as: Generator",
+    "devices_identity_tips": "The unique identification code of the device.",
+    "devices_secret_tips": "The connection key of the device",
+    "devices_image": "Device Picture",
+    "devices_image_tips": "Click to upload the device picture.",
+    "devices_category": "Device Type",
+    "devices_just_now": "just not",
+    "devices_minute_ago": "minute ago",
+    "devices_hour_ago": "hour ago",
+    "devices_day_ago": "day ago"
 }
