@@ -7,15 +7,15 @@ class DeviceDatabase {
   Future<void> initializeDatabase() async {
     String schema = '''
       CREATE TABLE IF NOT EXISTS devices (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        type TEXT NOT NULL,
-        identity TEXT NOT NULL,
-        secret TEXT NOT NULL,
-        status TEXT CHECK(status IN ('online', 'offline', 'warning')),
-        lastActive INTEGER NOT NULL,
-        createdAt INTEGER NOT NULL,
-        image TEXT NOT NULL
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          type TEXT NOT NULL,
+          identity TEXT NOT NULL UNIQUE,
+          secret TEXT NOT NULL,
+          status TEXT CHECK (status IN ('online', 'offline', 'warning')) DEFAULT 'offline',
+          lastActive INTEGER NOT NULL,
+          createdAt INTEGER NOT NULL,
+          image BLOB NOT NULL
       )
     ''';
     await _dbUtils.createTable(schema);
@@ -24,7 +24,7 @@ class DeviceDatabase {
   Future<void> addDevice(Device device) async {
     String sql = '''
       INSERT INTO devices (id, name, image, type, identity, secret, status, lastActive, createdAt)
-      VALUES ('${device.id}', '${device.name}', '${device.image}', '${device.type}', '${device.identity}', '${device.secret}', '${device.status}', ${device.lastActive}, ${device.createdAt})
+      VALUES ('${device.id}', '${device.name}', '${device.image}', '${device.type}', '${device.identity}', '${device.secret}', '${device.status.value}', ${device.lastActive}, ${device.createdAt})
     ''';
     await _dbUtils.insert('devices', sql);
   }
@@ -42,6 +42,15 @@ class DeviceDatabase {
       UPDATE devices 
       SET name = '${device.name}', image = '${device.image}', type = '${device.type}', identity = '${device.identity}', secret = '${device.secret}', status = '${device.status}', lastActive = ${device.lastActive}, createdAt = ${device.createdAt}
       WHERE id = '${device.id}'
+    ''';
+    await _dbUtils.update(sql);
+  }
+
+  Future<void> updateDeviceStatus(String deviceId, String status) async {
+    String sql = '''
+      UPDATE devices 
+      SET status = '$status', lastActive = ${DateTime.now().millisecondsSinceEpoch}
+      WHERE id = '$deviceId'
     ''';
     await _dbUtils.update(sql);
   }

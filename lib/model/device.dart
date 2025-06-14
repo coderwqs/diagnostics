@@ -1,4 +1,43 @@
+import 'dart:convert';
+
 enum DeviceStatus { online, offline, warning }
+
+extension DeviceStatusExtension on DeviceStatus {
+  String get value {
+    return this.toString().split('.').last;
+  }
+}
+
+enum MachineType {
+  motor, // 电机
+  pump, // 泵
+  airCompressor, // 空压机
+  inverter, // 变频器
+  fan, // 风机
+}
+
+extension MachineTypeExtension on MachineType {
+  String get value {
+    return this.toString().split('.').last;
+  }
+
+  String get displayName {
+    switch (this) {
+      case MachineType.motor:
+        return '电机';
+      case MachineType.pump:
+        return '泵';
+      case MachineType.airCompressor:
+        return '空压机';
+      case MachineType.inverter:
+        return '变频器';
+      case MachineType.fan:
+        return '风机';
+      default:
+        return '';
+    }
+  }
+}
 
 class Credentials {
   final String identity;
@@ -16,41 +55,49 @@ class Credentials {
 }
 
 class Device {
-  final String id;
-  final String name;
-  final String image;
-  final String type;
-  final String identity;
-  final String secret;
-  final DeviceStatus status;
-  final int lastActive;
-  final int createdAt;
+  String id;
+  String name;
+  List<int> image;
+  MachineType type;
+  String identity;
+  String secret;
+  DeviceStatus status;
+  int lastActive;
+  int createdAt;
 
   Device({
-    required this.id,
-    required this.name,
-    required this.image,
-    required this.type,
-    required this.identity,
-    required this.secret,
-    required this.status,
-    required this.lastActive,
-    required this.createdAt,
+    this.id = '',
+    this.name = '',
+    this.image = const [],
+    this.type = MachineType.motor,
+    this.identity = '',
+    this.secret = '',
+    this.status = DeviceStatus.offline,
+    this.lastActive = 0,
+    this.createdAt = 0,
   });
 
   factory Device.fromJson(Map<String, dynamic> json) {
     return Device(
       id: json['id'],
-      name: json['name'],
-      image: json['image'],
-      type: json['type'],
-      identity: json['identity'],
-      secret: json['secret'],
-      status: DeviceStatus.values.firstWhere(
-            (e) => e.toString() == 'DeviceStatus.${json['status']}',
+      name: json['name'] ?? '',
+      image: json['image'] is String
+          ? List<int>.from(
+              jsonDecode(json['image']).map((item) => item is int ? item : 0),
+            )
+          : [],
+      type: MachineType.values.firstWhere(
+        (e) => e.value == json['type'],
+        orElse: () => MachineType.motor,
       ),
-      lastActive: json['lastActive'],
-      createdAt: json['createdAt'],
+      identity: json['identity'] ?? '',
+      secret: json['secret'] ?? '',
+      status: DeviceStatus.values.firstWhere(
+        (e) => e.value == json['status'],
+        orElse: () => DeviceStatus.offline,
+      ),
+      lastActive: json['lastActive'] ?? 0,
+      createdAt: json['createdAt'] ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -59,10 +106,10 @@ class Device {
       'id': id,
       'name': name,
       'image': image,
-      'type': type,
+      'type': type.value,
       'identity': identity,
       'secret': secret,
-      'status': status.toString().split('.').last,
+      'status': status.value,
       'lastActive': lastActive,
       'createdAt': createdAt,
     };
@@ -71,8 +118,8 @@ class Device {
   Device copyWith({
     String? id,
     String? name,
-    String? image,
-    String? type,
+    List<int>? image,
+    MachineType? type,
     String? identity,
     String? secret,
     DeviceStatus? status,

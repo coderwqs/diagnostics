@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:diagnosis/service/devices.dart';
@@ -33,9 +34,10 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
 
   Future<void> _fetchDevices() async {
     final devices = await _deviceService.getAllDevices();
+
     setState(() {
       _devices = devices;
-      _filteredDevices = _devices;
+      _filteredDevices = devices;
       _isLoading = false;
     });
   }
@@ -150,6 +152,7 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
         itemCount: _filteredDevices.length,
         itemBuilder: (context, index) {
           final device = _filteredDevices[index];
+
           return DeviceCard(
             device: device,
             onTap: () => _showDeviceDetails(device),
@@ -184,23 +187,32 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   }
 
   void _toggleDevice(Device device, bool value) {
-    setState(() {
-      _devices = _devices.map((d) {
-        if (d.id == device.id) {
-          if (value) {
-            // 订阅主题
-            print('已订阅主题: ${device.id}');
-          } else {
-            // 取消订阅
-            print('已取消订阅主题: ${device.id}');
-          }
-          return d.copyWith(
-            status: value ? DeviceStatus.online : DeviceStatus.offline,
-            lastActive: DateTime.now().millisecondsSinceEpoch,
-          );
+    var d = _devices.map((d) {
+      if (d.id == device.id) {
+        if (value) {
+          // 订阅主题
+          print('已订阅主题: ${device.id}');
+        } else {
+          // 取消订阅
+          print('已取消订阅主题: ${device.id}');
         }
-        return d;
-      }).toList();
+
+        DeviceStatus status = value
+            ? DeviceStatus.online
+            : DeviceStatus.offline;
+
+        _deviceService.updateDeviceStatus(device.id, status.value);
+
+        return d.copyWith(
+          status: status,
+          lastActive: DateTime.now().millisecondsSinceEpoch,
+        );
+      }
+      return d;
+    }).toList();
+
+    setState(() {
+      _devices = d;
       _filterDevices();
     });
 
@@ -213,8 +225,8 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController identityController = TextEditingController();
     final TextEditingController secretController = TextEditingController();
-    String selectedType = '智能灯光';
-    String? selectedImage;
+    MachineType selectedType = MachineType.motor;
+    List<int>? selectedImage;
     bool isFormValid = false;
 
     showDialog(
@@ -222,7 +234,6 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            // 检查表单是否有效
             void checkFormValidity() {
               setState(() {
                 isFormValid =
@@ -233,208 +244,279 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
               });
             }
 
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(20),
               ),
-              title: const Text(
-                '添加新设备',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              content: SingleChildScrollView(
+              elevation: 4,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                constraints: const BoxConstraints(maxWidth: 500),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 设备名称
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: '设备名称',
-                        hintText: '请输入设备名称',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
+                    // 标题
+                    const Text(
+                      '添加新设备',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blueGrey,
                       ),
-                      onChanged: (_) => checkFormValidity(),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
+                    const Divider(height: 1),
+                    const SizedBox(height: 20),
 
-                    // 设备类型
-                    DropdownButtonFormField<String>(
-                      value: selectedType,
-                      decoration: InputDecoration(
-                        labelText: '设备类型',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 0,
-                        ),
+                    // 表单内容
+                    SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 设备名称
+                          TextField(
+                            controller: nameController,
+                            decoration: InputDecoration(
+                              labelText: '设备名称',
+                              hintText: '例如: 发电机',
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              prefixIcon: const Icon(Icons.devices, size: 20),
+                            ),
+                            onChanged: (_) => checkFormValidity(),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 设备类型
+                          DropdownButtonFormField<MachineType>(
+                            value: selectedType,
+                            decoration: InputDecoration(
+                              labelText: '设备类型',
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 0,
+                              ),
+                              prefixIcon: const Icon(Icons.category, size: 20),
+                            ),
+                            items: MachineType.values.map((type) {
+                              return DropdownMenuItem<MachineType>(
+                                value: type,
+                                child: Text(type.displayName),
+                              );
+                            }).toList(),
+                            onChanged: (newValue) {
+                              setState(() => selectedType = newValue!);
+                            },
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 身份标识
+                          TextField(
+                            controller: identityController,
+                            decoration: InputDecoration(
+                              labelText: '身份标识',
+                              hintText: '设备的唯一标识码',
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              prefixIcon: const Icon(Icons.qr_code, size: 20),
+                            ),
+                            onChanged: (_) => checkFormValidity(),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 密钥
+                          TextField(
+                            controller: secretController,
+                            obscureText: true,
+                            decoration: InputDecoration(
+                              labelText: '密钥',
+                              hintText: '设备的连接密钥',
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              prefixIcon: const Icon(Icons.lock, size: 20),
+                            ),
+                            onChanged: (_) => checkFormValidity(),
+                          ),
+                          const SizedBox(height: 20),
+
+                          // 图片选择区域
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '设备图片',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.blueGrey,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final ImagePicker _picker = ImagePicker();
+                                  final XFile? image = await _picker.pickImage(
+                                    source: ImageSource.gallery,
+                                  );
+
+                                  if (image != null) {
+                                    final file = File(image.path);
+                                    final imgBlob = await file.readAsBytes();
+
+                                    setState(() {
+                                      selectedImage = imgBlob;
+                                      checkFormValidity();
+                                    });
+                                  }
+                                },
+                                child: Container(
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: selectedImage == null
+                                          ? Colors.grey.shade300
+                                          : Colors.transparent,
+                                      width: 1.5,
+                                    ),
+                                    color: selectedImage == null
+                                        ? Colors.grey.shade50
+                                        : null,
+                                  ),
+                                  child: selectedImage == null
+                                      ? Center(
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: const [
+                                              Icon(
+                                                Icons.add_photo_alternate,
+                                                size: 32,
+                                                color: Colors.grey,
+                                              ),
+                                              SizedBox(height: 8),
+                                              Text(
+                                                '点击上传设备图片',
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        )
+                                      : ClipRRect(
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          child: Image.memory(
+                                            Uint8List.fromList(selectedImage!),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      items: ['智能灯光', '空调', '摄像头', '窗帘'].map((String type) {
-                        return DropdownMenuItem<String>(
-                          value: type,
-                          child: Text(type),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          selectedType = newValue!;
-                        });
-                      },
                     ),
-                    const SizedBox(height: 16),
 
-                    // 身份标识
-                    TextField(
-                      controller: identityController,
-                      decoration: InputDecoration(
-                        labelText: '身份标识',
-                        hintText: '请输入设备身份标识',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
-                      ),
-                      onChanged: (_) => checkFormValidity(),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
 
-                    // 密钥
-                    TextField(
-                      controller: secretController,
-                      decoration: InputDecoration(
-                        labelText: '密钥',
-                        hintText: '请输入设备密钥',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 15,
-                          vertical: 12,
-                        ),
-                      ),
-                      onChanged: (_) => checkFormValidity(),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // 图片选择区域
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // 操作按钮
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        const Text(
-                          '设备图片',
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 10,
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            side: BorderSide(
-                              color: Theme.of(context).primaryColor,
-                            ),
                           ),
-                          onPressed: () async {
-                            final ImagePicker _picker = ImagePicker();
-                            final XFile? image = await _picker.pickImage(
-                              source: ImageSource.gallery,
-                            );
-                            if (image != null) {
-                              setState(() {
-                                selectedImage = image.path;
-                                checkFormValidity();
-                              });
-                            }
-                          },
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: const [
-                              Icon(Icons.image, size: 20),
-                              SizedBox(width: 8),
-                              Text('选择设备图片'),
-                            ],
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text(
+                            '取消',
+                            style: TextStyle(color: Colors.grey),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        if (selectedImage != null)
-                          Container(
-                            height: 120,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isFormValid
+                                ? Theme.of(context).primaryColor
+                                : Colors.grey.shade400,
+                            shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.grey.shade300),
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(selectedImage!),
-                                fit: BoxFit.cover,
-                              ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
                             ),
+                            elevation: 0,
                           ),
+                          onPressed: isFormValid
+                              ? () {
+                                  Device newDevice = Device(
+                                    name: nameController.text,
+                                    image: selectedImage!,
+                                    identity: identityController.text,
+                                    secret: secretController.text,
+                                    type: selectedType,
+                                    status: DeviceStatus.offline,
+                                    lastActive:
+                                        DateTime.now().millisecondsSinceEpoch,
+                                  );
+
+                                  setState(() {
+                                    _devices.add(newDevice);
+                                    _filterDevices();
+                                  });
+
+                                  _deviceService.addDevice(newDevice);
+
+                                  Navigator.pop(context);
+                                }
+                              : null,
+                          child: const Text(
+                            '添加设备',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('取消', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isFormValid
-                        ? Theme.of(context).primaryColor
-                        : Colors.grey,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                  ),
-                  onPressed: isFormValid
-                      ? () {
-                          setState(() {
-                            _devices.add(
-                              Device(
-                                id: Uuid().v4(),
-                                name: nameController.text,
-                                image: selectedImage!,
-                                identity: identityController.text,
-                                secret: secretController.text,
-                                type: selectedType,
-                                status: DeviceStatus.offline,
-                                lastActive:
-                                    DateTime.now().millisecondsSinceEpoch,
-                                createdAt:
-                                    DateTime.now().millisecondsSinceEpoch,
-                              ),
-                            );
-                            _filterDevices();
-                          });
-                          Navigator.pop(context);
-                        }
-                      : null,
-                  child: const Text(
-                    '添加',
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ],
             );
           },
         );
@@ -548,66 +630,232 @@ class DeviceDetailSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: screenWidth > 500 ? 500 : screenWidth,
           ),
-          const SizedBox(height: 16),
-          Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.device_thermostat, size: 40, color: Colors.blue),
-              const SizedBox(width: 16),
-              Column(
+              // 顶部拖动指示器
+              Center(
+                child: Container(
+                  width: 48,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurface.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+
+              // 设备图片和基本信息
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    device.name,
-                    style: Theme.of(context).textTheme.titleLarge,
+                  // 设备图片
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      color: colorScheme.surfaceVariant,
+                      child: device.image.isNotEmpty
+                          ? Image.memory(
+                              Uint8List.fromList(device.image),
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildPlaceholderIcon(colorScheme),
+                            )
+                          : _buildPlaceholderIcon(colorScheme),
+                    ),
                   ),
-                  Text(
-                    '设备ID: ${device.id}',
-                    style: Theme.of(context).textTheme.bodySmall,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          device.name,
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '类型: ${device.type}',
+                          style: textTheme.bodyMedium,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(
+                              device.status,
+                            ).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            _getStatusText(device.status),
+                            style: TextStyle(
+                              color: _getStatusColor(device.status),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+
+              // 设备详细信息
+              _buildDetailItem(
+                icon: Icons.fingerprint,
+                label: '设备ID',
+                value: device.id,
+                context: context,
+              ),
+              _buildDetailItem(
+                icon: Icons.qr_code,
+                label: '身份标识',
+                value: device.identity,
+                context: context,
+              ),
+              _buildDetailItem(
+                icon: Icons.lock,
+                label: '密钥',
+                value: '••••••••••••',
+                context: context,
+              ),
+              _buildDetailItem(
+                icon: Icons.access_time,
+                label: '最后活动',
+                value: _formatTime(device.lastActive),
+                context: context,
+              ),
+              _buildDetailItem(
+                icon: Icons.today,
+                label: '创建时间',
+                value: _formatTime(device.createdAt),
+                context: context,
+              ),
+
+              const SizedBox(height: 24),
+
+              // 操作按钮组
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('关闭'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        // 控制设备逻辑
+                      },
+                      child: const Text('控制设备'),
+                    ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          _buildDetailRow('设备类型', device.type),
-          _buildDetailRow('当前状态', _getStatusText(device.status)),
-          _buildDetailRow('最后活动', _formatTime(device.lastActive)),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('关闭'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildPlaceholderIcon(ColorScheme colorScheme) {
+    return Center(
+      child: Icon(
+        Icons.device_unknown,
+        size: 40,
+        color: colorScheme.onSurface.withOpacity(0.3),
+      ),
+    );
+  }
+
+  Widget _buildDetailItem({
+    required IconData icon,
+    required String label,
+    required String value,
+    required BuildContext context,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 100, child: Text(label)),
-          Text(value),
+          Icon(
+            icon,
+            size: 20,
+            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -615,14 +863,22 @@ class DeviceDetailSheet extends StatelessWidget {
 
   String _getStatusText(DeviceStatus status) {
     return switch (status) {
-      DeviceStatus.online => '在线 (运行正常)',
-      DeviceStatus.offline => '离线 (设备未连接)',
-      DeviceStatus.warning => '警告 (需要检查)',
+      DeviceStatus.online => '在线',
+      DeviceStatus.offline => '离线',
+      DeviceStatus.warning => '警告',
+    };
+  }
+
+  Color _getStatusColor(DeviceStatus status) {
+    return switch (status) {
+      DeviceStatus.online => Colors.green,
+      DeviceStatus.offline => Colors.grey,
+      DeviceStatus.warning => Colors.orange,
     };
   }
 
   String _formatTime(int timestamp) {
     final time = DateTime.fromMillisecondsSinceEpoch(timestamp);
-    return DateFormat('yyyy-MM-dd HH:mm').format(time);
+    return DateFormat('yyyy-MM-dd HH:mm:ss').format(time);
   }
 }
