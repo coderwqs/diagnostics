@@ -1,0 +1,53 @@
+import 'package:diagnosis/utils/database.dart';
+import 'package:diagnosis/model/device.dart';
+
+class DeviceDatabase {
+  final DatabaseUtils _dbUtils = DatabaseUtils();
+
+  Future<void> initializeDatabase() async {
+    String schema = '''
+      CREATE TABLE IF NOT EXISTS devices (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        identity TEXT NOT NULL,
+        secret TEXT NOT NULL,
+        status TEXT CHECK(status IN ('online', 'offline', 'warning')),
+        lastActive INTEGER NOT NULL,
+        createdAt INTEGER NOT NULL,
+        image TEXT NOT NULL
+      )
+    ''';
+    await _dbUtils.createTable(schema);
+  }
+
+  Future<void> addDevice(Device device) async {
+    String sql = '''
+      INSERT INTO devices (id, name, image, type, identity, secret, status, lastActive, createdAt)
+      VALUES ('${device.id}', '${device.name}', '${device.image}', '${device.type}', '${device.identity}', '${device.secret}', '${device.status}', ${device.lastActive}, ${device.createdAt})
+    ''';
+    await _dbUtils.insert('devices', sql);
+  }
+
+  Future<List<Device>> getAllDevices() async {
+    String sql = 'SELECT * FROM devices';
+    final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
+    return List.generate(maps.length, (i) {
+      return Device.fromJson(maps[i]);
+    });
+  }
+
+  Future<void> updateDevice(Device device) async {
+    String sql = '''
+      UPDATE devices 
+      SET name = '${device.name}', image = '${device.image}', type = '${device.type}', identity = '${device.identity}', secret = '${device.secret}', status = '${device.status}', lastActive = ${device.lastActive}, createdAt = ${device.createdAt}
+      WHERE id = '${device.id}'
+    ''';
+    await _dbUtils.update(sql);
+  }
+
+  Future<void> deleteDevice(String id) async {
+    String sql = 'DELETE FROM devices WHERE id = "$id"';
+    await _dbUtils.delete(sql);
+  }
+}

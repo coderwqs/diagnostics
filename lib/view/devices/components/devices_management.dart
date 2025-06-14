@@ -1,8 +1,13 @@
-import 'package:diagnosis/utils/database_helper.dart';
+import 'dart:io';
+
+import 'package:diagnosis/service/devices.dart';
+import 'package:diagnosis/utils/database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
-import 'package:diagnosis/entity/device.dart';
+import 'package:diagnosis/model/device.dart';
+import 'package:uuid/uuid.dart';
 
 class DeviceManagementPage extends StatefulWidget {
   const DeviceManagementPage({super.key});
@@ -12,6 +17,7 @@ class DeviceManagementPage extends StatefulWidget {
 }
 
 class _DeviceManagementPageState extends State<DeviceManagementPage> {
+  DeviceService _deviceService = DeviceService();
   List<Device> _devices = [];
   List<Device> _filteredDevices = [];
   final TextEditingController _searchController = TextEditingController();
@@ -21,34 +27,14 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   @override
   void initState() {
     super.initState();
-    _loadDevices();
-    fetchDevices();
+    _fetchDevices();
     _searchController.addListener(_filterDevices);
   }
 
-  Future<List<Device>> fetchDevices() async {
-    final db = DatabaseHelper.instance;
-    final deviceList = await db.rawQuery('SELECT * FROM devices');
-    var d = deviceList.map((deviceData) => Device.fromJson(deviceData)).toList();
-    return d;
-  }
-
-  Future<void> _loadDevices() async {
-    await Future.delayed(const Duration(seconds: 1));
+  Future<void> _fetchDevices() async {
+    final devices = await _deviceService.getAllDevices();
     setState(() {
-      _devices = [
-        Device(
-          id: 'DEV-001',
-          name: '智能空调',
-          image: '',
-          type: '空调',
-          identity: 'identity',
-          secret: 'secret',
-          status: DeviceStatus.online,
-          lastActive: DateTime.now().millisecondsSinceEpoch,
-          createdAt: DateTime.now().millisecondsSinceEpoch,
-        ),
-      ];
+      _devices = devices;
       _filteredDevices = _devices;
       _isLoading = false;
     });
@@ -67,7 +53,7 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
 
   Future<void> _refreshDevices() async {
     setState(() => _isLoading = true);
-    await _loadDevices();
+    await _fetchDevices();
   }
 
   void _showDeviceDetails(Device device) {
@@ -225,87 +211,232 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
 
   void _addNewDevice() {
     final TextEditingController nameController = TextEditingController();
-    final TextEditingController typeController = TextEditingController();
-    final TextEditingController topicController = TextEditingController();
-    String selectedIcon = '灯光'; // 默认选中图标
+    final TextEditingController identityController = TextEditingController();
+    final TextEditingController secretController = TextEditingController();
+    String selectedType = '智能灯光';
+    String? selectedImage;
+    bool isFormValid = false;
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('添加新设备'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: const InputDecoration(hintText: '设备名称'),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // 检查表单是否有效
+            void checkFormValidity() {
+              setState(() {
+                isFormValid =
+                    nameController.text.isNotEmpty &&
+                    identityController.text.isNotEmpty &&
+                    secretController.text.isNotEmpty &&
+                    selectedImage != null;
+              });
+            }
+
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              title: const Text(
+                '添加新设备',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 设备名称
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: '设备名称',
+                        hintText: '请输入设备名称',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (_) => checkFormValidity(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 设备类型
+                    DropdownButtonFormField<String>(
+                      value: selectedType,
+                      decoration: InputDecoration(
+                        labelText: '设备类型',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 0,
+                        ),
+                      ),
+                      items: ['智能灯光', '空调', '摄像头', '窗帘'].map((String type) {
+                        return DropdownMenuItem<String>(
+                          value: type,
+                          child: Text(type),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        setState(() {
+                          selectedType = newValue!;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 身份标识
+                    TextField(
+                      controller: identityController,
+                      decoration: InputDecoration(
+                        labelText: '身份标识',
+                        hintText: '请输入设备身份标识',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (_) => checkFormValidity(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 密钥
+                    TextField(
+                      controller: secretController,
+                      decoration: InputDecoration(
+                        labelText: '密钥',
+                        hintText: '请输入设备密钥',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 15,
+                          vertical: 12,
+                        ),
+                      ),
+                      onChanged: (_) => checkFormValidity(),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 图片选择区域
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '设备图片',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            side: BorderSide(
+                              color: Theme.of(context).primaryColor,
+                            ),
+                          ),
+                          onPressed: () async {
+                            final ImagePicker _picker = ImagePicker();
+                            final XFile? image = await _picker.pickImage(
+                              source: ImageSource.gallery,
+                            );
+                            if (image != null) {
+                              setState(() {
+                                selectedImage = image.path;
+                                checkFormValidity();
+                              });
+                            }
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: const [
+                              Icon(Icons.image, size: 20),
+                              SizedBox(width: 8),
+                              Text('选择设备图片'),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        if (selectedImage != null)
+                          Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(selectedImage!),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: typeController,
-                  decoration: const InputDecoration(hintText: '设备类型（如：智能灯光）'),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('取消', style: TextStyle(color: Colors.grey)),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: topicController,
-                  decoration: const InputDecoration(hintText: '订阅主题'),
-                ),
-                const SizedBox(height: 10),
-                DropdownButton<String>(
-                  value: selectedIcon,
-                  items: ['灯光', '空调', '摄像头', '窗帘'].map((String iconName) {
-                    return DropdownMenuItem<String>(
-                      value: iconName,
-                      child: Text(iconName),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      selectedIcon = newValue!;
-                    });
-                  },
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isFormValid
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 10,
+                    ),
+                  ),
+                  onPressed: isFormValid
+                      ? () {
+                          setState(() {
+                            _devices.add(
+                              Device(
+                                id: Uuid().v4(),
+                                name: nameController.text,
+                                image: selectedImage!,
+                                identity: identityController.text,
+                                secret: secretController.text,
+                                type: selectedType,
+                                status: DeviceStatus.offline,
+                                lastActive:
+                                    DateTime.now().millisecondsSinceEpoch,
+                                createdAt:
+                                    DateTime.now().millisecondsSinceEpoch,
+                              ),
+                            );
+                            _filterDevices();
+                          });
+                          Navigator.pop(context);
+                        }
+                      : null,
+                  child: const Text(
+                    '添加',
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty &&
-                    typeController.text.isNotEmpty &&
-                    topicController.text.isNotEmpty) {
-                  setState(() {
-                    _devices.add(
-                      Device(
-                        id: 'DEV-${_devices.length + 1}',
-                        name: nameController.text,
-                        image: '',
-                        identity: 'identity',
-                        secret: 'secret',
-                        type: typeController.text,
-                        status: DeviceStatus.online,
-                        lastActive: DateTime.now().millisecondsSinceEpoch,
-                        createdAt: DateTime.now().millisecondsSinceEpoch,
-                      ),
-                    );
-                    _filterDevices();
-                  });
-                  Navigator.pop(context);
-                } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('请填写所有字段')));
-                }
-              },
-              child: const Text('添加'),
-            ),
-          ],
+            );
+          },
         );
       },
     );

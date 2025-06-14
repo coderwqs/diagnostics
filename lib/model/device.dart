@@ -49,8 +49,8 @@ class Device {
       status: DeviceStatus.values.firstWhere(
             (e) => e.toString() == 'DeviceStatus.${json['status']}',
       ),
-      lastActive: int.parse(json['lastActive']),
-      createdAt: int.parse(json['createdAt']),
+      lastActive: json['lastActive'],
+      createdAt: json['createdAt'],
     );
   }
 
