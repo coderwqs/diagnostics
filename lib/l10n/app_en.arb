@@ -66,6 +66,10 @@
     },
 
     "devices": "Device",
+    "devices_edit": "Edit Device",
+    "devices_delete": "Remove Device",
+    "devices_enabled": "Enabled",
+    "devices_disabled": "Disabled",
     "devices_motor": "Motor",
     "devices_fan": "Fan",
     "devices_pump": "Pump",

@@ -5,16 +5,21 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:diagnosis/model/device.dart';
 
-class AddDeviceDialog extends StatefulWidget {
+class EditDeviceDialog extends StatefulWidget {
+  final Device device;
   final Function(Device) onSubmit;
 
-  const AddDeviceDialog({super.key, required this.onSubmit});
+  const EditDeviceDialog({
+    super.key,
+    required this.device,
+    required this.onSubmit,
+  });
 
   @override
-  _AddDeviceDialogState createState() => _AddDeviceDialogState();
+  _EditDeviceDialogState createState() => _EditDeviceDialogState();
 }
 
-class _AddDeviceDialogState extends State<AddDeviceDialog> {
+class _EditDeviceDialogState extends State<EditDeviceDialog> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController identityController = TextEditingController();
   final TextEditingController secretController = TextEditingController();
@@ -22,11 +27,31 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
   List<int> selectedImage = [];
   bool isFormValid = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // 初始化表单字段
+    nameController.text = widget.device.name;
+    identityController.text = widget.device.identity;
+    secretController.text = widget.device.secret;
+    selectedType = widget.device.type;
+    selectedImage = widget.device.image;
+    isFormValid = false;
+  }
+
   void checkFormVerify() {
+    Device d = Device(
+      name: nameController.text,
+      type: selectedType,
+      identity: identityController.text,
+      secret: secretController.text,
+      image: selectedImage.toList(),
+    );
+
     setState(() {
-      if(nameController.text.isNotEmpty && identityController.text.isNotEmpty && secretController.text.isNotEmpty && selectedType.value.isNotEmpty){
+      if (widget.device.isModified(d)) {
         isFormValid = true;
-      }else{
+      } else {
         isFormValid = false;
       }
     });
@@ -47,7 +72,7 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n.devices_add_device,
+              l10n.devices_edit,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -92,10 +117,11 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
           DropdownButtonFormField<MachineType>(
             value: selectedType,
             decoration: InputDecoration(
-              labelText: l10n.devices_category,
+              labelText: AppLocalizations.of(context)!.devices_category,
               floatingLabelBehavior: FloatingLabelBehavior.always,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey.shade300),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -106,15 +132,26 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
             items: MachineType.values.map((type) {
               return DropdownMenuItem<MachineType>(
                 value: type,
-                child: Text(type.displayName(context)),
+                child: Text(
+                  type.displayName(context),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
               );
             }).toList(),
             onChanged: (newValue) {
               setState(() {
                 selectedType = newValue!;
-                checkFormVerify();
               });
+              checkFormVerify();
             },
+            isExpanded: true,
+            dropdownColor: Theme.of(context).colorScheme.surface,
+            menuMaxHeight: 300,
+            itemHeight: 48,
+            style: Theme.of(context).textTheme.bodyMedium,
+            borderRadius: BorderRadius.circular(12),
+            alignment: Alignment.centerLeft,
           ),
           const SizedBox(height: 20),
           TextField(
@@ -185,6 +222,7 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
               setState(() {
                 selectedImage = imgBytes;
               });
+              checkFormVerify();
             }
           },
           child: Container(
@@ -240,9 +278,7 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
         ),
         const SizedBox(width: 12),
         ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue[800],
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
           onPressed: isFormValid
               ? () {
                   widget.onSubmit(
@@ -256,7 +292,7 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
                   );
                 }
               : null,
-          child: Text(l10n.devices_add, style: TextStyle(color: Colors.white)),
+          child: Text(l10n.app_save, style: TextStyle(color: Colors.white)),
         ),
       ],
     );

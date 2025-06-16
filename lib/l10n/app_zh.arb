@@ -68,6 +68,10 @@
 
 
   "devices": "设备",
+  "devices_edit": "编辑设备",
+  "devices_delete": "删除设备",
+  "devices_enabled": "启用设备",
+  "devices_disabled": "禁用设备",
   "devices_motor": "电机",
   "devices_fan": "风机",
   "devices_pump": "泵",

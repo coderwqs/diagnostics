@@ -40,7 +40,7 @@ class DeviceDatabase {
   Future<void> updateDevice(Device device) async {
     String sql = '''
       UPDATE devices 
-      SET name = '${device.name}', image = '${device.image}', type = '${device.type}', identity = '${device.identity}', secret = '${device.secret}', status = '${device.status}', lastActive = ${device.lastActive}, createdAt = ${device.createdAt}
+      SET name = '${device.name}', image = '${device.image}', type = '${device.type}', identity = '${device.identity}', secret = '${device.secret}'
       WHERE id = '${device.id}'
     ''';
     await _dbUtils.update(sql);

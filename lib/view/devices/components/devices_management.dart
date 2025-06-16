@@ -9,6 +9,7 @@ import 'package:diagnosis/model/device.dart';
 
 import 'add_device.dart';
 import 'device_detail.dart';
+import 'edit_device.dart';
 
 class DeviceManagementPage extends StatefulWidget {
   const DeviceManagementPage({super.key});
@@ -119,7 +120,7 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _addNewDevice(context),
+        onPressed: () => _addDevice(context),
         child: Icon(Icons.add),
       ),
     );
@@ -159,6 +160,28 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
             device: device,
             onTap: () => _showDeviceDetails(device),
             onToggle: (value) => _toggleDevice(l10n, device, value),
+            onEdit: () {
+              print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+              _editDevice(context, device);
+            },
+            onDelete: () {
+              _deviceService.deleteDevice(device.id);
+              _fetchDevices();
+            },
+            onEnabled: () {
+              _deviceService.updateDeviceStatus(
+                device.id,
+                DeviceStatus.online.value,
+              );
+              _fetchDevices();
+            },
+            onDisabled: () {
+              _deviceService.updateDeviceStatus(
+                device.id,
+                DeviceStatus.offline.value,
+              );
+              _fetchDevices();
+            },
           );
         },
       ),
@@ -229,13 +252,31 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
     );
   }
 
-  void _addNewDevice(BuildContext context) {
+  void _addDevice(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AddDeviceDialog(
           onSubmit: (device) {
             _deviceService.addDevice(device);
+            Navigator.pop(dialogContext);
+            _fetchDevices();
+          },
+        );
+      },
+    );
+  }
+
+  void _editDevice(BuildContext context, Device device) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return EditDeviceDialog(
+          device: device,
+          onSubmit: (newDevice) {
+            newDevice.id = device.id;
+            _deviceService.updateDevice(newDevice);
+            Navigator.pop(dialogContext);
             _fetchDevices();
           },
         );
@@ -254,12 +295,20 @@ class DeviceCard extends StatelessWidget {
   final Device device;
   final VoidCallback onTap;
   final ValueChanged<bool> onToggle;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onEnabled;
+  final VoidCallback? onDisabled;
 
   const DeviceCard({
     super.key,
     required this.device,
     required this.onTap,
     required this.onToggle,
+    this.onEdit,
+    this.onDelete,
+    this.onEnabled,
+    this.onDisabled,
   });
 
   @override
@@ -268,58 +317,188 @@ class DeviceCard extends StatelessWidget {
     final theme = Theme.of(context);
     final statusColor = _getStatusColor(device.status);
 
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            shape: BoxShape.circle,
+    return GestureDetector(
+      onSecondaryTapDown: (details) =>
+          _showPopupMenu(context, details.globalPosition),
+      onLongPress: () => _showPopupMenuAtCenter(context),
+      child: Card(
+        elevation: 2,
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: ListTile(
+          leading: Container(
+            width: 50,
+            height: 50,
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              shape: BoxShape.circle,
+            ),
+            child: device.image.isNotEmpty
+                ? Image.memory(
+                    Uint8List.fromList(device.image),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        Icon(Icons.sensors, color: Colors.green),
+                  )
+                : Icon(Icons.sensors, color: Colors.green),
           ),
-          child: device.image.isNotEmpty
-              ? Image.memory(
-                  Uint8List.fromList(device.image),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.sensors, color: Colors.green),
-                )
-              : Icon(Icons.sensors, color: Colors.green),
-        ),
-        title: Text(device.name),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('ID: ${device.id}'),
-            const SizedBox(height: 4),
-            Row(
-              children: [
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    shape: BoxShape.circle,
+          title: Text(device.name),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('ID: ${device.id}'),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                    ),
                   ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${_getStatusText(l10n, device.status)} • ${l10n.devices_last_active}: ${_formatTime(l10n, device.lastActive)}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          trailing: Switch(
+            value: device.status != DeviceStatus.offline,
+            onChanged: onToggle,
+            activeColor: theme.primaryColor,
+          ),
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+
+  void _showPopupMenu(BuildContext context, Offset position) async {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+
+    final screenSize = MediaQuery.of(context).size;
+    final menuWidth = 180.0;
+    final menuHeight = 100.0;
+
+    final left = position.dx;
+    final top = position.dy;
+    final right = left + menuWidth;
+    final bottom = top + menuHeight;
+
+    final adjustedLeft = right > screenSize.width
+        ? screenSize.width - menuWidth
+        : left;
+    final adjustedTop = bottom > screenSize.height
+        ? screenSize.height - menuHeight
+        : top;
+
+    final result = await showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        adjustedLeft,
+        adjustedTop,
+        screenSize.width - adjustedLeft - menuWidth,
+        screenSize.height - adjustedTop - menuHeight,
+      ),
+      items: [
+        PopupMenuItem(
+          height: 40,
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit, size: 20, color: theme.iconTheme.color),
+              const SizedBox(width: 12),
+              Text(l10n.devices_edit),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          height: 40,
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, size: 20, color: Colors.red[400]),
+              const SizedBox(width: 12),
+              Text(
+                l10n.devices_delete,
+                style: TextStyle(color: Colors.red[400]),
+              ),
+            ],
+          ),
+        ),
+        if (device.status == DeviceStatus.offline)
+          PopupMenuItem(
+            height: 40,
+            value: 'enabled',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.desktop_windows_outlined,
+                  size: 20,
+                  color: Colors.green[400],
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 12),
                 Text(
-                  '${_getStatusText(l10n, device.status)} • ${l10n.devices_last_active}: ${_formatTime(l10n, device.lastActive)}',
-                  style: theme.textTheme.bodySmall,
+                  l10n.devices_enabled,
+                  style: TextStyle(color: Colors.green[400]),
                 ),
               ],
             ),
-          ],
-        ),
-        trailing: Switch(
-          value: device.status != DeviceStatus.offline,
-          onChanged: onToggle,
-          activeColor: theme.primaryColor,
-        ),
-        onTap: onTap,
+          ),
+        if (device.status == DeviceStatus.online)
+          PopupMenuItem(
+            height: 40,
+            value: 'disabled',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.desktop_access_disabled,
+                  size: 20,
+                  color: Colors.red[400],
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  l10n.devices_disabled,
+                  style: TextStyle(color: Colors.red[400]),
+                ),
+              ],
+            ),
+          ),
+      ],
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 1),
       ),
     );
+
+    switch (result) {
+      case 'edit':
+        onEdit?.call();
+        break;
+      case 'delete':
+        onDelete?.call();
+        break;
+      case 'enabled':
+        onEnabled?.call();
+        break;
+      case 'disabled':
+        onDisabled?.call();
+        break;
+    }
+  }
+
+  void _showPopupMenuAtCenter(BuildContext context) {
+    final renderBox = context.findRenderObject() as RenderBox;
+    final position = renderBox.localToGlobal(Offset.zero);
+    final center =
+        position + Offset(renderBox.size.width / 2, renderBox.size.height / 2);
+    _showPopupMenu(context, center);
   }
 
   Color _getStatusColor(DeviceStatus status) {

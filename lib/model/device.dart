@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:diagnosis/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -141,5 +142,13 @@ class Device {
       lastActive: lastActive ?? this.lastActive,
       createdAt: createdAt ?? this.createdAt,
     );
+  }
+
+  bool isModified(Device d) {
+    return name != d.name ||
+        type != d.type ||
+        identity != d.identity ||
+        secret != d.secret ||
+        !ListEquality().equals(image, d.image);
   }
 }
