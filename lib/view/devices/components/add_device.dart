@@ -6,7 +6,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:diagnosis/model/device.dart';
 
 class AddDeviceDialog extends StatefulWidget {
-  const AddDeviceDialog({super.key});
+  final Function(Device) onSubmit;
+
+  const AddDeviceDialog({super.key, required this.onSubmit});
 
   @override
   _AddDeviceDialogState createState() => _AddDeviceDialogState();
@@ -68,7 +70,10 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               prefixIcon: const Icon(Icons.devices, size: 20),
             ),
             onChanged: (value) {
@@ -86,7 +91,10 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 0,
+              ),
               prefixIcon: const Icon(Icons.category, size: 20),
             ),
             items: MachineType.values.map((type) {
@@ -111,7 +119,10 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               prefixIcon: const Icon(Icons.qr_code, size: 20),
             ),
           ),
@@ -126,7 +137,10 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
               prefixIcon: const Icon(Icons.lock, size: 20),
             ),
           ),
@@ -153,7 +167,9 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
         GestureDetector(
           onTap: () async {
             final ImagePicker _picker = ImagePicker();
-            final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+            final XFile? image = await _picker.pickImage(
+              source: ImageSource.gallery,
+            );
             if (image != null) {
               final file = File(image.path);
               List<int> imgBytes = await file.readAsBytes();
@@ -168,26 +184,38 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: selectedImage.isEmpty ? Colors.grey.shade300 : Colors.transparent,
+                color: selectedImage.isEmpty
+                    ? Colors.grey.shade300
+                    : Colors.transparent,
                 width: 1.5,
               ),
               color: selectedImage.isEmpty ? Colors.grey.shade50 : null,
             ),
             child: selectedImage.isEmpty
                 ? Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_photo_alternate, size: 32, color: Colors.grey),
-                  SizedBox(height: 8),
-                  Text(AppLocalizations.of(context)!.devices_image_tips, style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.add_photo_alternate,
+                          size: 32,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          AppLocalizations.of(context)!.devices_image_tips,
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
                 : ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.memory(Uint8List.fromList(selectedImage), fit: BoxFit.cover),
-            ),
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.memory(
+                      Uint8List.fromList(selectedImage),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
           ),
         ),
       ],
@@ -204,10 +232,20 @@ class _AddDeviceDialogState extends State<AddDeviceDialog> {
         ),
         const SizedBox(width: 12),
         ElevatedButton(
-          onPressed: isFormValid ? () {
-            // 提交逻辑
-            Navigator.pop(context);
-          } : null,
+          onPressed: isFormValid
+              ? () {
+                  widget.onSubmit(
+                    Device(
+                      name: nameController.text,
+                      type: selectedType,
+                      identity: identityController.text,
+                      secret: secretController.text,
+                      image: selectedImage.toList(),
+                    )
+                  );
+                  Navigator.pop(context);
+                }
+              : null,
           child: Text(l10n.devices_add, style: TextStyle(color: Colors.white)),
         ),
       ],

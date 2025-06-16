@@ -10,6 +10,10 @@ class DeviceService {
       device.id = Uuid().v4();
     }
 
+    if (device.lastActive == 0) {
+      device.lastActive = DateTime.now().millisecondsSinceEpoch;
+    }
+
     if (device.createdAt == 0) {
       device.createdAt = DateTime.now().millisecondsSinceEpoch;
     }
