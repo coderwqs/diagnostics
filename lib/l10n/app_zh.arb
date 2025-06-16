@@ -68,6 +68,11 @@
 
 
   "devices": "设备",
+  "devices_motor": "电机",
+  "devices_fan": "风机",
+  "devices_pump": "泵",
+  "devices_air_compressor": "空压机",
+  "devices_inverter": "变频器",
   "devices_manage": "设备管理",
   "devices_type": "类型",
   "devices_search_tips": "搜索设备名称或ID",

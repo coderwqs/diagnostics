@@ -66,6 +66,11 @@
     },
 
     "devices": "Device",
+    "devices_motor": "Motor",
+    "devices_fan": "Fan",
+    "devices_pump": "Pump",
+    "devices_air_compressor": "Air Compressor",
+    "devices_inverter": "Inverter",
     "devices_manage": "Device Management",
     "devices_type": "Type",
     "devices_search_tips": "Search for the device name or ID.",

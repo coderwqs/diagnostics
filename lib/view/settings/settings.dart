@@ -2,6 +2,7 @@ import 'package:diagnosis/main.dart';
 import 'package:flutter/material.dart';
 import 'package:diagnosis/l10n/app_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SystemSettingsPage extends StatefulWidget {
@@ -195,9 +196,8 @@ class _SystemSettingsStatePage extends State<SystemSettingsPage> {
     );
   }
 
-  void _showLanguageSelectionDialog(BuildContext context) {
+  void _showLanguageSelectionDialog(BuildContext context, String currentLanguageCode) {
     final l10n = AppLocalizations.of(context)!;
-    final currentLanguageCode = Localizations.localeOf(context).languageCode;
 
     showDialog(
       context: context,
@@ -331,7 +331,7 @@ class _SystemSettingsStatePage extends State<SystemSettingsPage> {
   }
 
   Widget _buildLanguageSettingsItem(BuildContext context) {
-    final currentLanguageCode = Localizations.localeOf(context).languageCode;
+    String currentLanguageCode = Provider.of<LanguageProvider>(context).currentLanguageCode;
     final languageName = {
       'zh': AppLocalizations.of(context)!.settings_language_chinese,
       'en': AppLocalizations.of(context)!.settings_language_english,
@@ -345,7 +345,7 @@ class _SystemSettingsStatePage extends State<SystemSettingsPage> {
         context,
       )!.settings_current_language(languageName),
       iconColor: Colors.blue,
-      onTap: () => _showLanguageSelectionDialog(context),
+      onTap: () => _showLanguageSelectionDialog(context, currentLanguageCode),
     );
   }
 
@@ -353,12 +353,7 @@ class _SystemSettingsStatePage extends State<SystemSettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('language', languageCode);
 
-    // 重建MaterialApp
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(
-        builder: (context) => DiagnosticsApp(locale: Locale(languageCode)),
-      ),
-      (route) => false,
-    );
+    Provider.of<LanguageProvider>(context, listen: false).changeLanguage(languageCode);
+    Navigator.pop(context);
   }
 }

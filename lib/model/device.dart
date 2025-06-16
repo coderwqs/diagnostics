@@ -1,5 +1,8 @@
 import 'dart:convert';
 
+import 'package:diagnosis/l10n/app_localizations.dart';
+import 'package:flutter/cupertino.dart';
+
 enum DeviceStatus { online, offline, warning }
 
 extension DeviceStatusExtension on DeviceStatus {
@@ -21,18 +24,19 @@ extension MachineTypeExtension on MachineType {
     return this.toString().split('.').last;
   }
 
-  String get displayName {
+  String displayName(BuildContext context) {
+    AppLocalizations l10n = AppLocalizations.of(context)!;
     switch (this) {
       case MachineType.motor:
-        return '电机';
+        return l10n.devices_motor;
       case MachineType.pump:
-        return '泵';
+        return l10n.devices_pump;
       case MachineType.airCompressor:
-        return '空压机';
+        return l10n.devices_air_compressor;
       case MachineType.inverter:
-        return '变频器';
+        return l10n.devices_inverter;
       case MachineType.fan:
-        return '风机';
+        return l10n.devices_fan;
       default:
         return '';
     }

@@ -1,18 +1,12 @@
 import 'dart:io';
-
+import 'package:provider/provider.dart';
+import 'package:diagnosis/config/routes.dart';
 import 'package:diagnosis/database/devices.dart';
 import 'package:diagnosis/database/users.dart';
-import 'package:diagnosis/view/alarms/alarms.dart';
-import 'package:diagnosis/view/devices/components/devices_management.dart';
-import 'package:diagnosis/view/devices/devices.dart';
-import 'package:diagnosis/view/diagnostics/diagnostics.dart';
-import 'package:diagnosis/view/settings/components/versions.dart';
-import 'package:diagnosis/view/settings/settings.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'l10n/app_localizations.dart';
-import 'package:diagnosis/view/dashboard/dashboard.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> initializeDB() async {
@@ -24,6 +18,24 @@ Future<void> initializeDB() async {
   await UserDatabase().initializeDatabase();
 }
 
+class LanguageProvider with ChangeNotifier {
+  Locale _locale;
+
+  LanguageProvider(this._locale);
+
+  Locale get locale => _locale;
+
+  String get currentLanguageCode => _locale.languageCode;
+
+  Future<void> changeLanguage(String languageCode) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('language', languageCode);
+
+    _locale = Locale(languageCode);
+    notifyListeners();
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -32,37 +44,33 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final savedLanguage = prefs.getString('language') ?? 'zh';
 
-  runApp(DiagnosticsApp(locale: Locale(savedLanguage)));
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LanguageProvider(Locale(savedLanguage)),
+      child: DiagnosticsApp(),
+    ),
+  );
 }
 
 class DiagnosticsApp extends StatelessWidget {
-  final Locale locale;
-
-  const DiagnosticsApp({super.key, required this.locale});
+  const DiagnosticsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Diagnostics',
-      locale: locale,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      supportedLocales: AppLocalizations.supportedLocales,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => DashboardPage(),
-        '/settings': (context) => SystemSettingsPage(),
-        '/device': (context) => DataCollectionPage(),
-        '/analysis': (context) => DataAnalysisPage(),
-        '/alert': (context) => AlertManagementPage(),
-
-        '/versions': (context) => VersionsPage(),
-        '/device/list': (context) => DeviceManagementPage(),
+    return Consumer<LanguageProvider>(
+      builder: (context, languageProvider, child) {
+        return MaterialApp(
+          title: 'Diagnostics',
+          locale: languageProvider.locale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          ),
+          initialRoute: '/',
+          routes: routes,
+        );
       },
-      onGenerateTitle: (context) => AppLocalizations.of(context)!.app_title,
-      navigatorObservers: [RouteObserver<ModalRoute>()],
     );
   }
 }
