@@ -31,7 +31,7 @@ class DatabaseUtils {
     await db.execute(schema);
   }
 
-  Future<void> insert(String tableName, String sql) async {
+  Future<void> insert(String sql) async {
     final db = await database;
     await db.execute(sql);
   }

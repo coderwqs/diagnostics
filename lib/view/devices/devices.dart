@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class DataCollectionPage extends StatelessWidget {
-  const DataCollectionPage({super.key});
+class DevicesPage extends StatelessWidget {
+  const DevicesPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,9 @@ class DataCollectionPage extends StatelessWidget {
                 subtitle: "监控实时数据流",
                 color: Colors.blue.shade100,
                 iconColor: Colors.blue,
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).pushNamed('/device/collection');
+                },
               ),
               const SizedBox(height: 12),
               _buildFeatureCard(
@@ -61,7 +63,9 @@ class DataCollectionPage extends StatelessWidget {
                 subtitle: "查看历史数据记录",
                 color: Colors.blue.shade100,
                 iconColor: Colors.green,
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).pushNamed('/device/history');
+                },
               ),
               const SizedBox(height: 12),
               _buildFeatureCard(

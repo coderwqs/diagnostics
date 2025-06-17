@@ -23,7 +23,7 @@ class UserDatabase {
       INSERT INTO users (id, name, email, password, createdAt)
       VALUES ('${user.id}', '${user.name}', '${user.email}', '${user.password}', ${user.createdAt})
     ''';
-    await _dbUtils.insert('users', sql);
+    await _dbUtils.insert(sql);
   }
 
   Future<List<User>> getAllUsers() async {

@@ -26,7 +26,7 @@ class DeviceDatabase {
       INSERT INTO devices (id, name, image, type, identity, secret, status, lastActive, createdAt)
       VALUES ('${device.id}', '${device.name}', '${device.image}', '${device.type}', '${device.identity}', '${device.secret}', '${device.status.value}', ${device.lastActive}, ${device.createdAt})
     ''';
-    await _dbUtils.insert('devices', sql);
+    await _dbUtils.insert(sql);
   }
 
   Future<List<Device>> getAllDevices() async {
