@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:diagnosis/database/history.dart';
+import 'package:diagnosis/view/devices/history/history.dart';
 import 'package:provider/provider.dart';
 import 'package:diagnosis/config/routes.dart';
 import 'package:diagnosis/database/devices.dart';
@@ -16,6 +18,7 @@ Future<void> initializeDB() async {
 
   await DeviceDatabase().initializeDatabase();
   await UserDatabase().initializeDatabase();
+  await HistoryDatabase().initializeDatabase();
 }
 
 class LanguageProvider with ChangeNotifier {

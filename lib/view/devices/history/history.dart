@@ -1,8 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:diagnosis/model/history.dart';
+import 'package:diagnosis/service/history.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
+
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class HistoryDataPage extends StatefulWidget {
@@ -13,59 +17,137 @@ class HistoryDataPage extends StatefulWidget {
 }
 
 class _HistoryDataPageState extends State<HistoryDataPage> {
+  final HistoryService _historyService = HistoryService();
   late Future<List<History>> _historyFuture;
   String _searchQuery = '';
   String _filterValue = 'all';
+  bool _isLoadingMore = false;
+  int _currentPage = 1;
+  final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _historyFuture = fetchHistoryData();
+    _historyFuture = fetchHistoryData(page: _currentPage);
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels ==
+            _scrollController.position.maxScrollExtent &&
+        !_isLoadingMore) {
+      _loadMoreData();
+    }
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoadingMore) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    final newData = await fetchHistoryData(page: _currentPage + 1);
+
+    setState(() {
+      _historyFuture = _historyFuture.then((existingData) {
+        return [...existingData, ...newData];
+      });
+      _currentPage++;
+      _isLoadingMore = false;
+    });
+  }
+
+  Future<void> _refreshData() async {
+    setState(() {
+      _currentPage = 1;
+      _historyFuture = fetchHistoryData(page: 1);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('历史数据'),
+        title: const Text(
+          '历史数据',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: () {
-              setState(() {
-                _historyFuture = fetchHistoryData();
-              });
-            },
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+            tooltip: '刷新数据',
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildSearchFilterBar(),
+          _buildSearchFilterBar(theme),
           Expanded(
-            child: FutureBuilder<List<History>>(
-              future: _historyFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return _buildLoadingIndicator();
-                } else if (snapshot.hasError) {
-                  return _buildErrorWidget(snapshot.error.toString());
-                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return _buildEmptyState();
-                }
+            child: RefreshIndicator(
+              onRefresh: _refreshData,
+              child: FutureBuilder<List<History>>(
+                future: _historyFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting &&
+                      _currentPage == 1) {
+                    return _buildLoadingIndicator();
+                  } else if (snapshot.hasError) {
+                    return _buildErrorWidget(snapshot.error.toString());
+                  } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return _buildEmptyState();
+                  }
 
-                final filteredData = _filterData(snapshot.data!);
+                  final filteredData = _filterData(snapshot.data!);
 
-                return filteredData.isEmpty
-                    ? _buildNoResultsWidget()
-                    : ListView.builder(
-                        itemCount: filteredData.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredData[index];
-                          return _buildHistoryCard(item, context);
-                        },
-                      );
-              },
+                  return filteredData.isEmpty
+                      ? _buildNoResultsWidget()
+                      : CustomScrollView(
+                          controller: _scrollController,
+                          slivers: [
+                            SliverList(
+                              delegate: SliverChildBuilderDelegate((
+                                context,
+                                index,
+                              ) {
+                                if (index < filteredData.length) {
+                                  final item = filteredData[index];
+                                  return _buildHistoryCard(item, context);
+                                }
+                                return null;
+                              }, childCount: filteredData.length),
+                            ),
+                            if (_isLoadingMore)
+                              const SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: Center(
+                                    child: SizedBox(
+                                      height: 24,
+                                      width: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        );
+                },
+              ),
             ),
           ),
         ],
@@ -73,19 +155,47 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  Widget _buildSearchFilterBar() {
-    return Padding(
-      padding: const EdgeInsets.all(12.0),
+  Widget _buildSearchFilterBar(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _searchController.clear();
+                        });
+                      },
+                    )
+                  : null,
               hintText: '搜索设备ID或状态...',
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              contentPadding: EdgeInsets.symmetric(vertical: 12),
+              filled: true,
+              fillColor: theme.inputDecorationTheme.fillColor,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
             ),
             onChanged: (value) {
               setState(() {
@@ -93,7 +203,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
               });
             },
           ),
-          SizedBox(height: 8),
+          const SizedBox(height: 12),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -102,6 +212,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                 _buildFilterChip('正常', 'normal'),
                 _buildFilterChip('过载', 'overload'),
                 _buildFilterChip('最近7天', 'week'),
+                _buildDateRangeFilter(),
               ],
             ),
           ),
@@ -121,20 +232,63 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
             _filterValue = selected ? value : 'all';
           });
         },
+        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+        checkmarkColor: Theme.of(context).primaryColor,
+        labelStyle: TextStyle(
+          color: _filterValue == value
+              ? Theme.of(context).primaryColor
+              : Theme.of(context).textTheme.bodyLarge?.color,
+        ),
       ),
     );
   }
 
+  Widget _buildDateRangeFilter() {
+    return IconButton(
+      icon: const Icon(Icons.calendar_today, size: 20),
+      onPressed: () {
+        // 实现日期范围选择
+        _showDateRangePicker();
+      },
+      tooltip: '选择日期范围',
+    );
+  }
+
+  Future<void> _showDateRangePicker() async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      currentDate: DateTime.now(),
+      saveText: '确认',
+    );
+
+    if (picked != null) {
+      // 处理日期范围选择
+      setState(() {
+        _filterValue = 'custom';
+        // 更新过滤逻辑
+      });
+    }
+  }
+
   Widget _buildHistoryCard(History item, BuildContext context) {
+    final theme = Theme.of(context);
     final isOverload = item.rotationSpeed != null && item.rotationSpeed! > 1000;
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+    final timeAgo = _timeAgo(
+      DateTime.fromMillisecondsSinceEpoch(item.createdAt),
+    );
 
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 1),
+      ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           Navigator.push(
             context,
@@ -149,51 +303,66 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
               Row(
                 children: [
                   _buildStatusIndicator(isOverload),
-                  SizedBox(width: 12),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
                           '设备 ${item.deviceId}',
-                          style: TextStyle(
+                          style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        SizedBox(height: 4),
-                        Text(
-                          dateFormat.format(
-                            DateTime.fromMillisecondsSinceEpoch(item.createdAt),
-                          ),
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 12,
-                          ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time,
+                              size: 12,
+                              color: theme.hintColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              timeAgo,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.hintColor,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: Colors.grey),
+                  Icon(Icons.chevron_right, color: theme.hintColor),
                 ],
               ),
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildDataPoint(
-                    icon: Icons.speed,
-                    label: '采样率',
-                    value: '${item.samplingRate} Hz',
-                  ),
-                  SizedBox(width: 16),
-                  _buildDataPoint(
-                    icon: Icons.rotate_right,
-                    label: '转速',
-                    value: item.rotationSpeed != null
-                        ? '${item.rotationSpeed} RPM'
-                        : '无数据',
-                  ),
-                ],
+              const SizedBox(height: 12),
+              IntrinsicHeight(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildDataPoint(
+                        icon: Icons.speed,
+                        label: '采样率',
+                        value: '${item.samplingRate} Hz',
+                      ),
+                    ),
+                    const VerticalDivider(thickness: 1, width: 16),
+                    Expanded(
+                      child: _buildDataPoint(
+                        icon: Icons.rotate_right,
+                        label: '转速',
+                        value: item.rotationSpeed != null
+                            ? '${item.rotationSpeed} RPM'
+                            : '无数据',
+                        valueColor: isOverload ? Colors.red : null,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -204,15 +373,15 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
 
   Widget _buildStatusIndicator(bool isOverload) {
     return Container(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: isOverload
-            ? Colors.red.withOpacity(0.2)
-            : Colors.green.withOpacity(0.2),
+            ? Colors.red.withOpacity(0.1)
+            : Colors.green.withOpacity(0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(
-        isOverload ? Icons.warning : Icons.check_circle,
+        isOverload ? Icons.warning_amber_rounded : Icons.check_circle_rounded,
         color: isOverload ? Colors.red : Colors.green,
         size: 20,
       ),
@@ -223,18 +392,32 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     required IconData icon,
     required String label,
     required String value,
+    Color? valueColor,
   }) {
+    final theme = Theme.of(context);
+
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(icon, size: 16, color: Colors.grey),
-        SizedBox(width: 4),
+        Icon(icon, size: 16, color: theme.hintColor),
+        const SizedBox(width: 8),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(label, style: TextStyle(color: Colors.grey, fontSize: 12)),
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.hintColor,
+              ),
+            ),
+            const SizedBox(height: 2),
             Text(
               value,
-              style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: valueColor ?? theme.textTheme.bodyMedium?.color,
+              ),
             ),
           ],
         ),
@@ -247,9 +430,9 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('加载数据中...'),
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text('加载数据中...', style: Theme.of(context).textTheme.bodyLarge),
         ],
       ),
     );
@@ -261,18 +444,29 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.error_outline, color: Colors.red, size: 48),
-          SizedBox(height: 16),
-          Text('加载失败', style: TextStyle(fontSize: 18)),
-          SizedBox(height: 8),
-          Text(error, textAlign: TextAlign.center),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
+          Text('加载失败', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(
+              error,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).hintColor,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _historyFuture = fetchHistoryData();
-              });
-            },
-            child: Text('重试'),
+            onPressed: _refreshData,
+            style: ElevatedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text('重试'),
           ),
         ],
       ),
@@ -284,11 +478,20 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.history, size: 48, color: Colors.grey[400]),
-          SizedBox(height: 16),
-          Text('暂无历史数据', style: TextStyle(fontSize: 18)),
-          SizedBox(height: 8),
-          Text('您还没有任何历史记录', style: TextStyle(color: Colors.grey)),
+          Icon(
+            Icons.history_toggle_off,
+            size: 64,
+            color: Theme.of(context).hintColor,
+          ),
+          const SizedBox(height: 16),
+          Text('暂无历史数据', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            '您还没有任何历史记录',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).hintColor,
+            ),
+          ),
         ],
       ),
     );
@@ -299,11 +502,16 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-          SizedBox(height: 16),
-          Text('未找到匹配结果', style: TextStyle(fontSize: 18)),
-          SizedBox(height: 8),
-          Text('请尝试其他搜索条件', style: TextStyle(color: Colors.grey)),
+          Icon(Icons.search_off, size: 64, color: Theme.of(context).hintColor),
+          const SizedBox(height: 16),
+          Text('未找到匹配结果', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          Text(
+            '请尝试其他搜索条件',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).hintColor,
+            ),
+          ),
         ],
       ),
     );
@@ -339,54 +547,28 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     return result;
   }
 
-  Future<List<History>> fetchHistoryData() async {
-    await Future.delayed(Duration(seconds: 1)); // 模拟网络延迟
-    return [
-      History(
-        id: 1,
-        deviceId: 'A123',
-        dataTime: 1625151600000,
-        samplingRate: 10.0,
-        rotationSpeed: 900,
-        data: [1.0, 2.0, 3.0, 2.5, 1.8, 2.2, 3.1],
-        createdAt: DateTime.now()
-            .subtract(Duration(hours: 2))
-            .millisecondsSinceEpoch,
-      ),
-      History(
-        id: 2,
-        deviceId: 'B456',
-        dataTime: 1625155200000,
-        samplingRate: 20.0,
-        rotationSpeed: 1200,
-        data: [2.0, 3.0, 4.0, 3.5, 2.8, 3.2, 4.1],
-        createdAt: DateTime.now()
-            .subtract(Duration(days: 1))
-            .millisecondsSinceEpoch,
-      ),
-      History(
-        id: 3,
-        deviceId: 'C789',
-        dataTime: 1625158800000,
-        samplingRate: 15.0,
-        rotationSpeed: null,
-        data: [1.5, 2.5, 3.5, 2.8, 2.0, 2.7, 3.6],
-        createdAt: DateTime.now()
-            .subtract(Duration(days: 3))
-            .millisecondsSinceEpoch,
-      ),
-      History(
-        id: 4,
-        deviceId: 'D012',
-        dataTime: 1625162400000,
-        samplingRate: 25.0,
-        rotationSpeed: 800,
-        data: [0.8, 1.8, 2.8, 2.0, 1.5, 2.0, 2.9],
-        createdAt: DateTime.now()
-            .subtract(Duration(days: 5))
-            .millisecondsSinceEpoch,
-      ),
-    ];
+  String _timeAgo(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays > 365) {
+      return '${(difference.inDays / 365).floor()}年前';
+    } else if (difference.inDays > 30) {
+      return '${(difference.inDays / 30).floor()}个月前';
+    } else if (difference.inDays > 0) {
+      return '${difference.inDays}天前';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}小时前';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}分钟前';
+    } else {
+      return '刚刚';
+    }
+  }
+
+  Future<List<History>> fetchHistoryData({int page = 1, int limit = 10}) async {
+
+    return  _historyService.getAllHistories(page, limit);
   }
 }
 

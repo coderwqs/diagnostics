@@ -29,9 +29,12 @@ class HistoryDatabase {
     await _dbUtils.insert(sql);
   }
 
-  Future<List<History>> getAllHistory() async {
-    String sql = 'SELECT * FROM history';
+  Future<List<History>> getAllHistories(int page, int limit) async {
+    int offset = (page - 1) * limit;
+
+    String sql = 'SELECT * FROM history LIMIT $limit OFFSET $offset';
     final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
+
     return List.generate(maps.length, (i) {
       return History.fromMap(maps[i]);
     });

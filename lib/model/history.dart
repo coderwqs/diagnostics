@@ -1,11 +1,11 @@
 class History {
-  final int id;
-  final String deviceId;
-  final int dataTime;
-  final double samplingRate;
-  final int? rotationSpeed;
-  final List<double> data;
-  final int createdAt;
+  int id;
+  String deviceId;
+  int dataTime;
+  double samplingRate;
+  int? rotationSpeed;
+  List<double> data;
+  int createdAt;
 
   History({
     required this.id,
