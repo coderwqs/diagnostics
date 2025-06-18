@@ -21,7 +21,6 @@ class _DetailPageState extends State<DetailPage> {
   late Future<void> _dataFuture;
   bool _isExporting = false;
   int _selectedChartType = 0; // 0: 折线图, 1: 柱状图
-  int _selectedTimeRange = 0; // 0: 全部, 1: 最近100点, 2: 最近50点
 
   @override
   void initState() {
@@ -34,7 +33,7 @@ class _DetailPageState extends State<DetailPage> {
     final theme = Theme.of(context);
     final isOverload =
         widget.history.rotationSpeed != null &&
-        widget.history.rotationSpeed! > 1000;
+            widget.history.rotationSpeed! > 1000;
 
     return Scaffold(
       appBar: AppBar(
@@ -115,8 +114,8 @@ class _DetailPageState extends State<DetailPage> {
                 _buildStatsCard(theme),
                 SizedBox(height: 20),
 
-   /*             // 原始数据表格
-                _buildDataTableSection(theme),*/
+                // 原始数据部分
+                _buildRawDataSection(theme),
               ],
             ),
           );
@@ -197,7 +196,7 @@ class _DetailPageState extends State<DetailPage> {
                   icon: Icons.timeline,
                   title: '数据范围',
                   value:
-                      '${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
+                  '${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
                       '${widget.history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
                   color: Colors.purple,
                 ),
@@ -291,54 +290,30 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Widget _buildChartTypeSelector(ThemeData theme) {
-    return Row(
-      children: [
-        Expanded(
-          child: SegmentedButton<int>(
-            segments: [
-              ButtonSegment(
-                value: 0,
-                label: Text('折线图'),
-                icon: Icon(Icons.show_chart, size: 18),
-              ),
-              ButtonSegment(
-                value: 1,
-                label: Text('柱状图'),
-                icon: Icon(Icons.bar_chart, size: 18),
-              ),
-            ],
-            selected: {_selectedChartType},
-            onSelectionChanged: (Set<int> newSelection) {
-              setState(() {
-                _selectedChartType = newSelection.first;
-              });
-            },
-            style: ButtonStyle(visualDensity: VisualDensity.compact),
-          ),
+    return SegmentedButton<int>(
+      segments: [
+        ButtonSegment(
+          value: 0,
+          label: Text('折线图'),
+          icon: Icon(Icons.show_chart, size: 18),
         ),
-        SizedBox(width: 12),
-        DropdownButton<int>(
-          value: _selectedTimeRange,
-          items: [
-            DropdownMenuItem(value: 0, child: Text('全部数据')),
-            DropdownMenuItem(value: 1, child: Text('最近100点')),
-            DropdownMenuItem(value: 2, child: Text('最近50点')),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _selectedTimeRange = value!;
-            });
-          },
-          underline: Container(),
-          isDense: true,
+        ButtonSegment(
+          value: 1,
+          label: Text('柱状图'),
+          icon: Icon(Icons.bar_chart, size: 18),
         ),
       ],
+      selected: {_selectedChartType},
+      onSelectionChanged: (Set<int> newSelection) {
+        setState(() {
+          _selectedChartType = newSelection.first;
+        });
+      },
+      style: ButtonStyle(visualDensity: VisualDensity.compact),
     );
   }
 
   Widget _buildChartSection(ThemeData theme) {
-    List<double> displayData = _getDisplayData();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -377,8 +352,8 @@ class _DetailPageState extends State<DetailPage> {
             child: Stack(
               children: [
                 _selectedChartType == 0
-                    ? _buildLineChart(displayData)
-                    : _buildBarChart(displayData),
+                    ? _buildLineChart(widget.history.data)
+                    : _buildBarChart(widget.history.data),
                 Positioned(
                   right: 12,
                   top: 12,
@@ -389,7 +364,7 @@ class _DetailPageState extends State<DetailPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${displayData.length}个数据点',
+                      '${widget.history.data.length}个数据点',
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
@@ -414,7 +389,7 @@ class _DetailPageState extends State<DetailPage> {
       primaryYAxis: NumericAxis(
         minimum: data.reduce((a, b) => a < b ? a : b) * 0.95,
         maximum: data.reduce((a, b) => a > b ? a : b) * 1.05,
-        interval: _calculateChartInterval(data as int),
+        interval: _calculateChartInterval(data.length),
         majorGridLines: MajorGridLines(
           color: Colors.grey.withOpacity(0.2),
           width: 1,
@@ -455,7 +430,7 @@ class _DetailPageState extends State<DetailPage> {
       primaryYAxis: NumericAxis(
         minimum: 0,
         maximum: data.reduce((a, b) => a > b ? a : b) * 1.2,
-        interval: _calculateChartInterval(data as int),
+        interval: _calculateChartInterval(data.length),
         majorGridLines: MajorGridLines(
           color: Colors.grey.withOpacity(0.2),
           width: 1,
@@ -483,27 +458,12 @@ class _DetailPageState extends State<DetailPage> {
     return (dataLength / 10).ceilToDouble();
   }
 
-  List<double> _getDisplayData() {
-    switch (_selectedTimeRange) {
-      case 1:
-        return widget.history.data.length > 100
-            ? widget.history.data.sublist(widget.history.data.length - 100)
-            : widget.history.data;
-      case 2:
-        return widget.history.data.length > 50
-            ? widget.history.data.sublist(widget.history.data.length - 50)
-            : widget.history.data;
-      default:
-        return widget.history.data;
-    }
-  }
-
   Widget _buildStatsCard(ThemeData theme) {
-    final displayData = _getDisplayData();
-    final minVal = displayData.reduce((a, b) => a < b ? a : b);
-    final maxVal = displayData.reduce((a, b) => a > b ? a : b);
-    final avgVal = displayData.reduce((a, b) => a + b) / displayData.length;
-    final stdDev = _calculateStdDev(displayData);
+    final data = widget.history.data;
+    final minVal = data.reduce((a, b) => a < b ? a : b);
+    final maxVal = data.reduce((a, b) => a > b ? a : b);
+    final avgVal = data.reduce((a, b) => a + b) / data.length;
+    final stdDev = _calculateStdDev(data);
 
     return Card(
       elevation: 0,
@@ -523,45 +483,41 @@ class _DetailPageState extends State<DetailPage> {
               ),
             ),
             SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              childAspectRatio: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
-                _buildStatItem(
+                _buildCompactStatItem(
                   '最小值',
                   minVal.toStringAsFixed(2),
                   Icons.arrow_downward,
                   Colors.blue,
                 ),
-                _buildStatItem(
+                _buildCompactStatItem(
                   '最大值',
                   maxVal.toStringAsFixed(2),
                   Icons.arrow_upward,
                   Colors.red,
                 ),
-                _buildStatItem(
+                _buildCompactStatItem(
                   '平均值',
                   avgVal.toStringAsFixed(2),
                   Icons.trending_flat,
                   Colors.green,
                 ),
-                _buildStatItem(
+                _buildCompactStatItem(
                   '标准差',
                   stdDev.toStringAsFixed(2),
                   Icons.science,
                   Colors.purple,
                 ),
-                _buildStatItem(
+                _buildCompactStatItem(
                   '中位数',
-                  _calculateMedian(displayData).toStringAsFixed(2),
+                  _calculateMedian(data).toStringAsFixed(2),
                   Icons.line_weight,
                   Colors.orange,
                 ),
-                _buildStatItem(
+                _buildCompactStatItem(
                   '变异系数',
                   (stdDev / avgVal).toStringAsFixed(4),
                   Icons.compare,
@@ -575,33 +531,26 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildStatItem(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+  Widget _buildCompactStatItem(
+      String label,
+      String value,
+      IconData icon,
+      Color color,
+      ) {
     return Container(
-      padding: EdgeInsets.all(8),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color.withOpacity(0.2), width: 1),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: color),
-          ),
+          Icon(icon, size: 16, color: color),
           SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 label,
@@ -625,27 +574,7 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  double _calculateStdDev(List<double> data) {
-    final mean = data.reduce((a, b) => a + b) / data.length;
-    var sum = 0.0;
-    for (var value in data) {
-      sum += math.pow(value - mean, 2);
-    }
-    return math.sqrt(sum / data.length);
-  }
-
-  double _calculateMedian(List<double> data) {
-    final sorted = List<double>.from(data)..sort();
-    final middle = sorted.length ~/ 2;
-    if (sorted.length % 2 == 1) {
-      return sorted[middle];
-    }
-    return (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-
-  Widget _buildDataTableSection(ThemeData theme) {
-    final displayData = _getDisplayData();
-
+  Widget _buildRawDataSection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -662,10 +591,10 @@ class _DetailPageState extends State<DetailPage> {
               onPressed: _isExporting ? null : () => _exportData(context),
               icon: _isExporting
                   ? SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
                   : Icon(Icons.download, size: 18),
               label: Text(_isExporting ? '导出中...' : '导出'),
             ),
@@ -673,6 +602,7 @@ class _DetailPageState extends State<DetailPage> {
         ),
         SizedBox(height: 12),
         Container(
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(16),
@@ -681,73 +611,53 @@ class _DetailPageState extends State<DetailPage> {
               width: 1,
             ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: DataTable(
-                columnSpacing: 24,
-                horizontalMargin: 16,
-                headingTextStyle: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: theme.textTheme.bodyLarge?.color,
-                ),
-                columns: [
-                  DataColumn(label: Text('序号'), numeric: true),
-                  DataColumn(label: Text('数值'), numeric: true),
-                  DataColumn(label: Text('状态')),
-                  DataColumn(label: Text('Z-Score'), numeric: true),
-                ],
-                rows: displayData.asMap().entries.map((entry) {
-                  final isAnomaly = _isAnomaly(entry.value, displayData);
-                  final zScore = _calculateZScore(entry.value, displayData);
-                  return DataRow(
-                    cells: [
-                      DataCell(Text('${entry.key + 1}')),
-                      DataCell(Text(entry.value.toStringAsFixed(2))),
-                      DataCell(
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isAnomaly
-                                ? Colors.red.withOpacity(0.1)
-                                : Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            isAnomaly ? '异常' : '正常',
-                            style: TextStyle(
-                              color: isAnomaly ? Colors.red : Colors.green,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ),
-                      DataCell(Text(zScore.toStringAsFixed(2))),
-                    ],
-                  );
-                }).toList(),
+          child: Column(
+            children: [
+              Text(
+                '数据点数: ${widget.history.data.length}',
+                style: theme.textTheme.bodyMedium,
               ),
-            ),
+              SizedBox(height: 8),
+              Text(
+                '采样率: ${widget.history.samplingRate} Hz',
+                style: theme.textTheme.bodyMedium,
+              ),
+              SizedBox(height: 8),
+              Text(
+                '数据范围: ${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
+                    '${widget.history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
+                style: theme.textTheme.bodyMedium,
+              ),
+              SizedBox(height: 12),
+              Text(
+                '由于数据量过大，建议导出查看完整数据',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.hintColor,
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
   }
 
-  bool _isAnomaly(double value, List<double> data) {
+  double _calculateStdDev(List<double> data) {
     final mean = data.reduce((a, b) => a + b) / data.length;
-    final stdDev = _calculateStdDev(data);
-    return (value - mean).abs() > 2 * stdDev;
+    var sum = 0.0;
+    for (var value in data) {
+      sum += math.pow(value - mean, 2);
+    }
+    return math.sqrt(sum / data.length);
   }
 
-  double _calculateZScore(double value, List<double> data) {
-    final mean = data.reduce((a, b) => a + b) / data.length;
-    final stdDev = _calculateStdDev(data);
-    return stdDev != 0 ? (value - mean) / stdDev : 0;
+  double _calculateMedian(List<double> data) {
+    final sorted = List<double>.from(data)..sort();
+    final middle = sorted.length ~/ 2;
+    if (sorted.length % 2 == 1) {
+      return sorted[middle];
+    }
+    return (sorted[middle - 1] + sorted[middle]) / 2;
   }
 
   Future<void> _exportData(BuildContext context) async {
@@ -773,9 +683,9 @@ class _DetailPageState extends State<DetailPage> {
 
         csvData.writeln(
           '${i + 1},${value.toStringAsFixed(2)},'
-          '${widget.history.createdAt + i},'
-          '${isAnomaly ? "异常" : "正常"},'
-          '${zScore.toStringAsFixed(2)}',
+              '${widget.history.createdAt + i},'
+              '${isAnomaly ? "异常" : "正常"},'
+              '${zScore.toStringAsFixed(2)}',
         );
       }
 
@@ -822,8 +732,6 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   void _showFullscreenChart(BuildContext context) {
-    final displayData = _getDisplayData();
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -855,8 +763,8 @@ class _DetailPageState extends State<DetailPage> {
             SizedBox(height: 16),
             Expanded(
               child: _selectedChartType == 0
-                  ? _buildLineChart(displayData)
-                  : _buildBarChart(displayData),
+                  ? _buildLineChart(widget.history.data)
+                  : _buildBarChart(widget.history.data),
             ),
             SizedBox(height: 16),
             TextButton(
@@ -877,7 +785,6 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Future<void> _exportChartAsImage(BuildContext context) async {
-    // 实际项目中需要实现图表截图功能
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('图表导出功能将在后续版本中提供'),
@@ -955,7 +862,7 @@ class AdvancedAnalysisPage extends StatelessWidget {
   final History history;
 
   const AdvancedAnalysisPage({Key? key, required this.history})
-    : super(key: key);
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {

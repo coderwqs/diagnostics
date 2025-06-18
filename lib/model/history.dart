@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class History {
   int id;
   String deviceId;
@@ -24,7 +26,7 @@ class History {
       dataTime: map['dataTime'],
       samplingRate: map['samplingRate'],
       rotationSpeed: map['rotationSpeed'],
-      data: List<double>.from((map['data'] as List).map((x) => x.toDouble())),
+      data: List<double>.from(jsonDecode(map['data']).map((x) => x.toDouble())),
       createdAt: map['createdAt'],
     );
   }
@@ -36,7 +38,8 @@ class History {
       'dataTime': dataTime,
       'samplingRate': samplingRate,
       'rotationSpeed': rotationSpeed,
-      'data': data,
+      // 将List<double>转换为JSON字符串
+      'data': jsonEncode(data),
       'createdAt': createdAt,
     };
   }
