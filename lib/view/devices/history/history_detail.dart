@@ -1,12 +1,13 @@
 import 'package:diagnosis/model/history.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:flutter/services.dart';
 import 'dart:math' as math;
-import 'package:file_saver/file_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:diagnosis/utils/app_files.dart';
 
 class DetailPage extends StatefulWidget {
   final History history;
@@ -33,7 +34,7 @@ class _DetailPageState extends State<DetailPage> {
     final theme = Theme.of(context);
     final isOverload =
         widget.history.rotationSpeed != null &&
-            widget.history.rotationSpeed! > 1000;
+        widget.history.rotationSpeed! > 1000;
 
     return Scaffold(
       appBar: AppBar(
@@ -112,10 +113,6 @@ class _DetailPageState extends State<DetailPage> {
 
                 // 数据统计卡片
                 _buildStatsCard(theme),
-                SizedBox(height: 20),
-
-                // 原始数据部分
-                _buildRawDataSection(theme),
               ],
             ),
           );
@@ -166,6 +163,18 @@ class _DetailPageState extends State<DetailPage> {
                     ],
                   ),
                 ),
+                IconButton(
+                  icon: Icon(Icons.upload_rounded, size: 22),
+                  onPressed: () => _exportData(context),
+                  tooltip: '导出数据',
+                  style: IconButton.styleFrom(
+                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: EdgeInsets.all(8),
+                  ),
+                ),
               ],
             ),
             Divider(height: 24, thickness: 1),
@@ -174,29 +183,29 @@ class _DetailPageState extends State<DetailPage> {
               runSpacing: 12,
               children: [
                 _buildMetricTile(
-                  icon: Icons.speed,
+                  icon: Icons.speed_rounded,
                   title: '采样率',
                   value: '${widget.history.samplingRate} Hz',
                   color: theme.primaryColor,
                 ),
                 if (widget.history.rotationSpeed != null)
                   _buildMetricTile(
-                    icon: Icons.rotate_right,
+                    icon: Icons.rotate_right_rounded,
                     title: '转速',
                     value: '${widget.history.rotationSpeed} RPM',
                     color: isOverload ? Colors.red : Colors.green,
                   ),
                 _buildMetricTile(
-                  icon: Icons.show_chart,
+                  icon: Icons.format_list_numbered_rounded,
                   title: '数据点数',
                   value: '${widget.history.data.length}',
                   color: Colors.blueAccent,
                 ),
                 _buildMetricTile(
-                  icon: Icons.timeline,
+                  icon: Icons.timeline_rounded,
                   title: '数据范围',
                   value:
-                  '${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
+                      '${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
                       '${widget.history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
                   color: Colors.purple,
                 ),
@@ -206,6 +215,111 @@ class _DetailPageState extends State<DetailPage> {
         ),
       ),
     );
+  }
+
+  void _exportData(BuildContext context) async {
+    setState(() => _isExporting = true);
+
+    try {
+      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      final defaultFileName = 'device_${widget.history.deviceId}_$timestamp';
+
+      final fileContent = _generateCsvData();
+
+      final directory = await getDownloadsDirectory();
+      if (directory == null) throw Exception('无法访问下载目录');
+
+      final file = File('${directory.path}/$defaultFileName.csv');
+      await file.writeAsString(fileContent);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('数据已导出到下载目录'),
+          duration: Duration(seconds: 3),
+          action: SnackBarAction(
+            label: '查看文件',
+            onPressed: () async {
+              try {
+                await file.revealInFileExplorer();
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('无法打开目录: ${e.toString()}')),
+                );
+              }
+            },
+          ),
+        ),
+      );
+    } catch (e) {
+      _showExportFallbackDialog(context, e.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  void _showExportFallbackDialog(BuildContext context, String error) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('导出遇到问题'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('自动保存失败: $error'),
+            SizedBox(height: 16),
+            Text('您可以通过以下方式获取数据:'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: Text('取消'),
+            onPressed: () => Navigator.pop(context),
+          ),
+          TextButton(
+            child: Text('分享数据'),
+            onPressed: () {
+              Navigator.pop(context);
+              _shareDataFile(context);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _shareDataFile(BuildContext context) async {
+    try {
+      final csvData = _generateCsvData();
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File('${tempDir.path}/temp_export.csv');
+      await tempFile.writeAsString(csvData);
+
+      await Share.shareXFiles([
+        XFile(tempFile.path),
+      ], text: '设备${widget.history.deviceId}的监测数据');
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('分享失败: ${e.toString()}')));
+    }
+  }
+
+  String _generateCsvData() {
+    final buffer = StringBuffer();
+
+    buffer.writeln('Value,Timestamp');
+
+    final timeIncrement = (1000 / widget.history.samplingRate).round();
+
+    widget.history.data.asMap().forEach((index, value) {
+      final timestamp = widget.history.createdAt + (index * timeIncrement);
+      buffer.write('$value,$timestamp\n');
+    });
+
+    return buffer.toString();
   }
 
   Widget _buildStatusBadge(bool isOverload) {
@@ -476,16 +590,19 @@ class _DetailPageState extends State<DetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '数据统计',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Text(
+                  '数据统计',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
             SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
+            Row(
+              spacing: 16,
               children: [
                 _buildCompactStatItem(
                   '最小值',
@@ -532,113 +649,63 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Widget _buildCompactStatItem(
-      String label,
-      String value,
-      IconData icon,
-      Color color,
-      ) {
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      width: 140,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2), width: 1),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withOpacity(0.15), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.05),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: color),
-          SizedBox(width: 8),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                label,
+                label.toUpperCase(),
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 10,
                   color: Theme.of(context).hintColor,
+                  letterSpacing: 0.5,
                 ),
               ),
+              SizedBox(height: 2),
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                   color: color,
+                  height: 1.2,
                 ),
               ),
             ],
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildRawDataSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '原始数据',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            TextButton.icon(
-              onPressed: _isExporting ? null : () => _exportData(context),
-              icon: _isExporting
-                  ? SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-                  : Icon(Icons.download, size: 18),
-              label: Text(_isExporting ? '导出中...' : '导出'),
-            ),
-          ],
-        ),
-        SizedBox(height: 12),
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: theme.dividerColor.withOpacity(0.2),
-              width: 1,
-            ),
-          ),
-          child: Column(
-            children: [
-              Text(
-                '数据点数: ${widget.history.data.length}',
-                style: theme.textTheme.bodyMedium,
-              ),
-              SizedBox(height: 8),
-              Text(
-                '采样率: ${widget.history.samplingRate} Hz',
-                style: theme.textTheme.bodyMedium,
-              ),
-              SizedBox(height: 8),
-              Text(
-                '数据范围: ${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
-                    '${widget.history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
-                style: theme.textTheme.bodyMedium,
-              ),
-              SizedBox(height: 12),
-              Text(
-                '由于数据量过大，建议导出查看完整数据',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.hintColor,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -658,77 +725,6 @@ class _DetailPageState extends State<DetailPage> {
       return sorted[middle];
     }
     return (sorted[middle - 1] + sorted[middle]) / 2;
-  }
-
-  Future<void> _exportData(BuildContext context) async {
-    setState(() {
-      _isExporting = true;
-    });
-
-    try {
-      final data = widget.history.data;
-      final csvData = StringBuffer();
-
-      // 添加CSV头部
-      csvData.writeln('序号,数值,时间戳,状态,Z-Score');
-
-      // 添加数据行
-      final mean = data.reduce((a, b) => a + b) / data.length;
-      final stdDev = _calculateStdDev(data);
-
-      for (int i = 0; i < data.length; i++) {
-        final value = data[i];
-        final isAnomaly = (value - mean).abs() > 2 * stdDev;
-        final zScore = stdDev != 0 ? (value - mean) / stdDev : 0;
-
-        csvData.writeln(
-          '${i + 1},${value.toStringAsFixed(2)},'
-              '${widget.history.createdAt + i},'
-              '${isAnomaly ? "异常" : "正常"},'
-              '${zScore.toStringAsFixed(2)}',
-        );
-      }
-
-      // 获取临时目录
-      final directory = await getTemporaryDirectory();
-      final file = File(
-        '${directory.path}/device_${widget.history.deviceId}_data.csv',
-      );
-      await file.writeAsString(csvData.toString());
-
-      // 保存文件
-      await FileSaver.instance.saveFile(
-        name: 'device_${widget.history.deviceId}_data.csv',
-        bytes: await file.readAsBytes(),
-        ext: 'csv',
-        mimeType: MimeType.csv,
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('数据已导出为CSV文件'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('导出失败: $e'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-    } finally {
-      setState(() {
-        _isExporting = false;
-      });
-    }
   }
 
   void _showFullscreenChart(BuildContext context) {
@@ -862,7 +858,7 @@ class AdvancedAnalysisPage extends StatelessWidget {
   final History history;
 
   const AdvancedAnalysisPage({Key? key, required this.history})
-      : super(key: key);
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {

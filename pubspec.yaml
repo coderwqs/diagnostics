@@ -50,6 +50,9 @@ dependencies:
   collection: ^1.19.1
   file_saver: ^0.2.14
   syncfusion_flutter_charts: ^29.2.11
+  file_picker: ^10.2.0
+  share_plus: ^11.0.0
+  open_file: ^3.5.10
 
 dev_dependencies:
   flutter_test:
