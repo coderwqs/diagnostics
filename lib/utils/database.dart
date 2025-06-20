@@ -36,6 +36,13 @@ class DatabaseUtils {
     await db.execute(sql);
   }
 
+  Future<Map<String, dynamic>?> retrieve(String sql) async {
+    final db = await database;
+    List<Map<String, dynamic>> result =  await db.rawQuery(sql);
+
+    return result.isNotEmpty ? result.first : null;
+  }
+
   Future<List<Map<String, dynamic>>> retrieveAll(String sql) async {
     final db = await database;
     return await db.rawQuery(sql);

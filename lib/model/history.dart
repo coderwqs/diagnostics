@@ -26,7 +26,9 @@ class History {
       dataTime: map['dataTime'],
       samplingRate: map['samplingRate'],
       rotationSpeed: map['rotationSpeed'],
-      data: List<double>.from(jsonDecode(map['data']).map((x) => x.toDouble())),
+      data: map['data'] != null
+          ? List<double>.from(jsonDecode(map['data']).map((x) => x.toDouble()))
+          : [],
       createdAt: map['createdAt'],
     );
   }
@@ -38,9 +40,45 @@ class History {
       'dataTime': dataTime,
       'samplingRate': samplingRate,
       'rotationSpeed': rotationSpeed,
-      // 将List<double>转换为JSON字符串
       'data': jsonEncode(data),
       'createdAt': createdAt,
     };
+  }
+}
+
+class ExtendedHistory extends History {
+  String? deviceName;
+
+  ExtendedHistory({
+    required super.id,
+    required super.deviceId,
+    required super.dataTime,
+    required super.samplingRate,
+    super.rotationSpeed,
+    required super.data,
+    required super.createdAt,
+    this.deviceName,
+  });
+
+  factory ExtendedHistory.fromMap(Map<String, dynamic> map) {
+    return ExtendedHistory(
+      id: map['id'],
+      deviceId: map['deviceId'],
+      dataTime: map['dataTime'],
+      samplingRate: map['samplingRate'],
+      rotationSpeed: map['rotationSpeed'],
+      data: map['data'] != null
+          ? List<double>.from(jsonDecode(map['data']).map((x) => x.toDouble()))
+          : [],
+      createdAt: map['createdAt'],
+      deviceName: map['deviceName'],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toMap() {
+    final map = super.toMap();
+    map['deviceName'] = deviceName;
+    return map;
   }
 }

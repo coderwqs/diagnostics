@@ -1,4 +1,5 @@
 import 'package:diagnosis/model/history.dart';
+import 'package:diagnosis/service/history.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,31 +11,48 @@ import 'dart:io';
 import 'package:diagnosis/utils/app_files.dart';
 
 class DetailPage extends StatefulWidget {
-  final History history;
+  final int id;
+  final String deviceId;
 
-  const DetailPage({Key? key, required this.history}) : super(key: key);
+  const DetailPage({super.key, required this.id, required this.deviceId});
 
   @override
   _DetailPageState createState() => _DetailPageState();
 }
 
 class _DetailPageState extends State<DetailPage> {
-  late Future<void> _dataFuture;
+  final HistoryService _historyService = HistoryService();
+  late Future<void> _historyFuture;
+  late ExtendedHistory _history;
   bool _isExporting = false;
   int _selectedChartType = 0; // 0: 折线图, 1: 柱状图
 
   @override
   void initState() {
     super.initState();
-    _dataFuture = Future.delayed(Duration.zero); // 模拟数据加载
+    _loadHistoryData();
+  }
+
+  void _loadHistoryData() async {
+    final history = await fetchHistoryDataById();
+
+    if (history != null) {
+      setState(() {
+        _history = history;
+        _historyFuture = Future.value();
+      });
+    }
+  }
+
+  Future<ExtendedHistory?> fetchHistoryDataById() async {
+    return await _historyService.getHistory(widget.id, widget.deviceId);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isOverload =
-        widget.history.rotationSpeed != null &&
-        widget.history.rotationSpeed! > 1000;
+        _history.rotationSpeed != null && _history.rotationSpeed! > 1000;
 
     return Scaffold(
       appBar: AppBar(
@@ -86,7 +104,7 @@ class _DetailPageState extends State<DetailPage> {
         ],
       ),
       body: FutureBuilder(
-        future: _dataFuture,
+        future: _historyFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return _buildLoadingIndicator();
@@ -142,7 +160,7 @@ class _DetailPageState extends State<DetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '设备 ${widget.history.deviceId}',
+                        '${_history.deviceName}',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -153,7 +171,7 @@ class _DetailPageState extends State<DetailPage> {
                       Text(
                         DateFormat('yyyy-MM-dd HH:mm:ss').format(
                           DateTime.fromMillisecondsSinceEpoch(
-                            widget.history.createdAt,
+                            _history.createdAt,
                           ),
                         ),
                         style: theme.textTheme.bodySmall?.copyWith(
@@ -185,28 +203,28 @@ class _DetailPageState extends State<DetailPage> {
                 _buildMetricTile(
                   icon: Icons.speed_rounded,
                   title: '采样率',
-                  value: '${widget.history.samplingRate} Hz',
+                  value: '${_history.samplingRate} Hz',
                   color: theme.primaryColor,
                 ),
-                if (widget.history.rotationSpeed != null)
+                if (_history.rotationSpeed != null)
                   _buildMetricTile(
                     icon: Icons.rotate_right_rounded,
                     title: '转速',
-                    value: '${widget.history.rotationSpeed} RPM',
+                    value: '${_history.rotationSpeed} RPM',
                     color: isOverload ? Colors.red : Colors.green,
                   ),
                 _buildMetricTile(
                   icon: Icons.format_list_numbered_rounded,
                   title: '数据点数',
-                  value: '${widget.history.data.length}',
+                  value: '${_history.data.length}',
                   color: Colors.blueAccent,
                 ),
                 _buildMetricTile(
                   icon: Icons.timeline_rounded,
                   title: '数据范围',
                   value:
-                      '${widget.history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
-                      '${widget.history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
+                      '${_history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
+                      '${_history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
                   color: Colors.purple,
                 ),
               ],
@@ -222,7 +240,7 @@ class _DetailPageState extends State<DetailPage> {
 
     try {
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final defaultFileName = 'device_${widget.history.deviceId}_$timestamp';
+      final defaultFileName = 'device_${_history.deviceId}_$timestamp';
 
       final fileContent = _generateCsvData();
 
@@ -299,7 +317,7 @@ class _DetailPageState extends State<DetailPage> {
 
       await Share.shareXFiles([
         XFile(tempFile.path),
-      ], text: '设备${widget.history.deviceId}的监测数据');
+      ], text: '设备${_history.deviceId}的监测数据');
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -312,10 +330,10 @@ class _DetailPageState extends State<DetailPage> {
 
     buffer.writeln('Value,Timestamp');
 
-    final timeIncrement = (1000 / widget.history.samplingRate).round();
+    final timeIncrement = (1000 / _history.samplingRate).round();
 
-    widget.history.data.asMap().forEach((index, value) {
-      final timestamp = widget.history.createdAt + (index * timeIncrement);
+    _history.data.asMap().forEach((index, value) {
+      final timestamp = _history.createdAt + (index * timeIncrement);
       buffer.write('$value,$timestamp\n');
     });
 
@@ -466,8 +484,8 @@ class _DetailPageState extends State<DetailPage> {
             child: Stack(
               children: [
                 _selectedChartType == 0
-                    ? _buildLineChart(widget.history.data)
-                    : _buildBarChart(widget.history.data),
+                    ? _buildLineChart(_history.data)
+                    : _buildBarChart(_history.data),
                 Positioned(
                   right: 12,
                   top: 12,
@@ -478,7 +496,7 @@ class _DetailPageState extends State<DetailPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${widget.history.data.length}个数据点',
+                      '${_history.data.length}个数据点',
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
@@ -573,7 +591,7 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Widget _buildStatsCard(ThemeData theme) {
-    final data = widget.history.data;
+    final data = _history.data;
     final minVal = data.reduce((a, b) => a < b ? a : b);
     final maxVal = data.reduce((a, b) => a > b ? a : b);
     final avgVal = data.reduce((a, b) => a + b) / data.length;
@@ -745,7 +763,7 @@ class _DetailPageState extends State<DetailPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '设备 ${widget.history.deviceId} - 数据趋势',
+                  '设备 ${_history.deviceId} - 数据趋势',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -759,8 +777,8 @@ class _DetailPageState extends State<DetailPage> {
             SizedBox(height: 16),
             Expanded(
               child: _selectedChartType == 0
-                  ? _buildLineChart(widget.history.data)
-                  : _buildBarChart(widget.history.data),
+                  ? _buildLineChart(_history.data)
+                  : _buildBarChart(_history.data),
             ),
             SizedBox(height: 16),
             TextButton(
@@ -809,7 +827,7 @@ class _DetailPageState extends State<DetailPage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => AdvancedAnalysisPage(history: widget.history),
+            builder: (context) => AdvancedAnalysisPage(history: _history),
           ),
         );
         break;
@@ -843,7 +861,7 @@ class _DetailPageState extends State<DetailPage> {
           ElevatedButton(
             onPressed: () {
               setState(() {
-                _dataFuture = Future.delayed(Duration.zero);
+                _historyFuture = Future.delayed(Duration.zero);
               });
             },
             child: Text('重试'),

@@ -16,8 +16,12 @@ class HistoryService {
     await _historyDatabase.addHistory(history);
   }
 
-  Future<List<History>> getAllHistories(int page, limit) async {
+  Future<List<ExtendedHistory>> getAllHistories(int page, limit) async {
     return await _historyDatabase.getAllHistories(page, limit);
+  }
+
+  Future<ExtendedHistory?> getHistory(int id, String deviceId) async {
+    return await _historyDatabase.getHistoryByDeviceId(id, deviceId);
   }
 
   Future<void> updateHistory(History history) async {

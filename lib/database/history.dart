@@ -29,23 +29,41 @@ class HistoryDatabase {
     await _dbUtils.insert(sql);
   }
 
-  Future<List<History>> getAllHistories(int page, int limit) async {
+  Future<List<ExtendedHistory>> getAllHistories(int page, int limit) async {
     int offset = (page - 1) * limit;
 
-    String sql = 'SELECT * FROM history LIMIT $limit OFFSET $offset';
+    String sql =
+        '''
+      SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, 
+      h.createdAt, d.name AS deviceName FROM history h 
+      LEFT JOIN devices d ON d.id = h.deviceId LIMIT $limit OFFSET $offset
+    ''';
     final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
 
     return List.generate(maps.length, (i) {
-      return History.fromMap(maps[i]);
+      return ExtendedHistory.fromMap(maps[i]);
     });
   }
 
-  Future<List<History>> getHistoryByDeviceId(String deviceId) async {
-    String sql = 'SELECT * FROM history WHERE deviceId = $deviceId';
-    final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
-    return List.generate(maps.length, (i) {
-      return History.fromMap(maps[i]);
-    });
+  Future<ExtendedHistory?> getHistoryByDeviceId(
+    int historyId,
+    String deviceId,
+  ) async {
+    String sql =
+        '''
+    SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, h.data, 
+    h.createdAt, d.name AS deviceName FROM history h 
+    LEFT JOIN devices d ON d.id = h.deviceId 
+    WHERE h.deviceId = '$deviceId' AND h.id = $historyId;
+  ''';
+
+    final Map<String, dynamic>? map = await _dbUtils.retrieve(sql);
+
+    if (map != null) {
+      return ExtendedHistory.fromMap(map);
+    } else {
+      return null;
+    }
   }
 
   Future<void> updateHistory(History history) async {

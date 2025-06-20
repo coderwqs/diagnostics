@@ -20,7 +20,7 @@ class HistoryDataPage extends StatefulWidget {
 
 class _HistoryDataPageState extends State<HistoryDataPage> {
   final HistoryService _historyService = HistoryService();
-  late Future<List<History>> _historyFuture;
+  late Future<List<ExtendedHistory>> _historyFuture;
   String _searchQuery = '';
   String _filterValue = 'all';
   bool _isLoadingMore = false;
@@ -100,7 +100,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshData,
-              child: FutureBuilder<List<History>>(
+              child: FutureBuilder<List<ExtendedHistory>>(
                 future: _historyFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
@@ -274,7 +274,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     }
   }
 
-  Widget _buildHistoryCard(History item, BuildContext context) {
+  Widget _buildHistoryCard(ExtendedHistory item, BuildContext context) {
     final theme = Theme.of(context);
     final isOverload = item.rotationSpeed != null && item.rotationSpeed! > 1000;
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
@@ -294,7 +294,10 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
         onTap: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => DetailPage(history: item)),
+            MaterialPageRoute(
+              builder: (context) =>
+                  DetailPage(id: item.id, deviceId: item.deviceId),
+            ),
           );
         },
         child: Padding(
@@ -311,7 +314,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '设备 ${item.deviceId}',
+                          '${item.deviceName}',
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
@@ -519,7 +522,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  List<History> _filterData(List<History> data) {
+  List<ExtendedHistory> _filterData(List<ExtendedHistory> data) {
     var result = data.where((item) {
       final matchesSearch =
           item.deviceId.toLowerCase().contains(_searchQuery) ||
@@ -568,9 +571,10 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     }
   }
 
-  Future<List<History>> fetchHistoryData({int page = 1, int limit = 10}) async {
-
-    return  _historyService.getAllHistories(page, limit);
+  Future<List<ExtendedHistory>> fetchHistoryData({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    return _historyService.getAllHistories(page, limit);
   }
 }
-
