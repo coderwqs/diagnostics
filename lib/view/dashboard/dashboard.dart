@@ -139,7 +139,7 @@ class DashboardPage extends StatelessWidget {
             Icons.analytics_outlined,
             l10n.dashboard_data_analysis,
             Colors.green,
-            '/analysis',
+            '/diagnostics',
           ),
           _buildFeatureButton(
             context,

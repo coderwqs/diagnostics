@@ -522,10 +522,10 @@ class DeviceCard extends StatelessWidget {
     final now = DateTime.now();
     final diff = now.difference(time);
 
-    if (diff.inSeconds < 60) return l10n.devices_just_now;
+    if (diff.inSeconds < 60) return l10n.app_just_now;
     if (diff.inMinutes < 60)
-      return '${diff.inMinutes}${l10n.devices_minute_ago}';
-    if (diff.inHours < 24) return '${diff.inHours}${l10n.devices_hour_ago}';
-    return '${diff.inDays}${l10n.devices_day_ago}';
+      return '${diff.inMinutes}${l10n.app_minute_ago}';
+    if (diff.inHours < 24) return '${diff.inHours}${l10n.app_hour_ago}';
+    return '${diff.inDays}${l10n.app_day_ago}';
   }
 }

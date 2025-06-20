@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:diagnosis/l10n/app_localizations.dart';
 import 'package:diagnosis/model/history.dart';
 import 'package:diagnosis/service/history.dart';
 import 'package:flutter/material.dart';
@@ -78,25 +79,26 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '历史数据',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.history,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _refreshData,
-            tooltip: '刷新数据',
+            tooltip: l10n.history_refresh,
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildSearchFilterBar(theme),
+          _buildSearchFilterBar(l10n, theme),
           Expanded(
             child: RefreshIndicator(
               onRefresh: _refreshData,
@@ -105,17 +107,17 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting &&
                       _currentPage == 1) {
-                    return _buildLoadingIndicator();
+                    return _buildLoadingIndicator(l10n);
                   } else if (snapshot.hasError) {
-                    return _buildErrorWidget(snapshot.error.toString());
+                    return _buildErrorWidget(l10n, snapshot.error.toString());
                   } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return _buildEmptyState();
+                    return _buildEmptyState(l10n);
                   }
 
-                  final filteredData = _filterData(snapshot.data!);
+                  final filteredData = _filterData(l10n, snapshot.data!);
 
                   return filteredData.isEmpty
-                      ? _buildNoResultsWidget()
+                      ? _buildNoResultsWidget(l10n)
                       : CustomScrollView(
                           controller: _scrollController,
                           slivers: [
@@ -126,7 +128,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                               ) {
                                 if (index < filteredData.length) {
                                   final item = filteredData[index];
-                                  return _buildHistoryCard(item, context);
+                                  return _buildHistoryCard(l10n, item, context);
                                 }
                                 return null;
                               }, childCount: filteredData.length),
@@ -157,7 +159,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  Widget _buildSearchFilterBar(ThemeData theme) {
+  Widget _buildSearchFilterBar(AppLocalizations l10n, ThemeData theme) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -187,7 +189,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                       },
                     )
                   : null,
-              hintText: '搜索设备ID或状态...',
+              hintText: l10n.devices_search_tips_v1,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -210,11 +212,11 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildFilterChip('全部', 'all'),
-                _buildFilterChip('正常', 'normal'),
-                _buildFilterChip('过载', 'overload'),
-                _buildFilterChip('最近7天', 'week'),
-                _buildDateRangeFilter(),
+                _buildFilterChip(l10n.history_status_all, 'all'),
+                _buildFilterChip(l10n.history_status_normal, 'normal'),
+                _buildFilterChip(l10n.history_status_loader, 'overload'),
+                _buildFilterChip(l10n.history_status_recent, 'week'),
+                _buildDateRangeFilter(l10n),
               ],
             ),
           ),
@@ -245,40 +247,38 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  Widget _buildDateRangeFilter() {
+  Widget _buildDateRangeFilter(AppLocalizations l10n) {
     return IconButton(
       icon: const Icon(Icons.calendar_today, size: 20),
-      onPressed: () {
-        // 实现日期范围选择
-        _showDateRangePicker();
+      onPressed: () async {
+        final DateTimeRange? picked = await showDateRangePicker(
+          context: context,
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now(),
+          currentDate: DateTime.now(),
+          saveText: l10n.app_confirm,
+        );
+
+        if (picked != null) {
+          setState(() {
+            _filterValue = 'custom';
+          });
+        }
       },
-      tooltip: '选择日期范围',
+      tooltip: l10n.history_date_range,
     );
   }
 
-  Future<void> _showDateRangePicker() async {
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      currentDate: DateTime.now(),
-      saveText: '确认',
-    );
-
-    if (picked != null) {
-      // 处理日期范围选择
-      setState(() {
-        _filterValue = 'custom';
-        // 更新过滤逻辑
-      });
-    }
-  }
-
-  Widget _buildHistoryCard(ExtendedHistory item, BuildContext context) {
+  Widget _buildHistoryCard(
+    AppLocalizations l10n,
+    ExtendedHistory item,
+    BuildContext context,
+  ) {
     final theme = Theme.of(context);
     final isOverload = item.rotationSpeed != null && item.rotationSpeed! > 1000;
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     final timeAgo = _timeAgo(
+      l10n,
       DateTime.fromMillisecondsSinceEpoch(item.createdAt),
     );
 
@@ -351,7 +351,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                     Expanded(
                       child: _buildDataPoint(
                         icon: Icons.speed,
-                        label: '采样率',
+                        label: l10n.history_sampling_rate,
                         value: '${item.samplingRate} Hz',
                       ),
                     ),
@@ -359,10 +359,10 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
                     Expanded(
                       child: _buildDataPoint(
                         icon: Icons.rotate_right,
-                        label: '转速',
+                        label: l10n.history_rotation_speed,
                         value: item.rotationSpeed != null
                             ? '${item.rotationSpeed} RPM'
-                            : '无数据',
+                            : l10n.history_empty,
                         valueColor: isOverload ? Colors.red : null,
                       ),
                     ),
@@ -430,27 +430,33 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  Widget _buildLoadingIndicator() {
+  Widget _buildLoadingIndicator(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const CircularProgressIndicator(),
           const SizedBox(height: 16),
-          Text('加载数据中...', style: Theme.of(context).textTheme.bodyLarge),
+          Text(
+            l10n.history_loading,
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildErrorWidget(String error) {
+  Widget _buildErrorWidget(AppLocalizations l10n, String error) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.error_outline, color: Colors.red, size: 48),
           const SizedBox(height: 16),
-          Text('加载失败', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.history_failed_loading,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -471,14 +477,14 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text('重试'),
+            child: Text(l10n.app_retry),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -489,10 +495,13 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
             color: Theme.of(context).hintColor,
           ),
           const SizedBox(height: 16),
-          Text('暂无历史数据', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.history_no_data,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Text(
-            '您还没有任何历史记录',
+            l10n.history_tips,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).hintColor,
             ),
@@ -502,17 +511,20 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  Widget _buildNoResultsWidget() {
+  Widget _buildNoResultsWidget(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.search_off, size: 64, color: Theme.of(context).hintColor),
           const SizedBox(height: 16),
-          Text('未找到匹配结果', style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            l10n.history_no_match,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           Text(
-            '请尝试其他搜索条件',
+            l10n.history_other_search,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: Theme.of(context).hintColor,
             ),
@@ -522,13 +534,16 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     );
   }
 
-  List<ExtendedHistory> _filterData(List<ExtendedHistory> data) {
+  List<ExtendedHistory> _filterData(
+    AppLocalizations l10n,
+    List<ExtendedHistory> data,
+  ) {
     var result = data.where((item) {
       final matchesSearch =
           item.deviceId.toLowerCase().contains(_searchQuery) ||
-          (_searchQuery.contains('正常') &&
+          (_searchQuery.contains(l10n.history_status_normal) &&
               !(item.rotationSpeed != null && item.rotationSpeed! > 1000)) ||
-          (_searchQuery.contains('过载') &&
+          (_searchQuery.contains(l10n.history_status_loader) &&
               (item.rotationSpeed != null && item.rotationSpeed! > 1000));
 
       final matchesFilter =
@@ -552,22 +567,22 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
     return result;
   }
 
-  String _timeAgo(DateTime date) {
+  String _timeAgo(AppLocalizations l10n, DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
 
     if (difference.inDays > 365) {
-      return '${(difference.inDays / 365).floor()}年前';
+      return '${(difference.inDays / 365).floor()}${l10n.app_year_ago}';
     } else if (difference.inDays > 30) {
-      return '${(difference.inDays / 30).floor()}个月前';
+      return '${(difference.inDays / 30).floor()}${l10n.app_month_ago}';
     } else if (difference.inDays > 0) {
-      return '${difference.inDays}天前';
+      return '${difference.inDays}${l10n.app_day_ago}';
     } else if (difference.inHours > 0) {
-      return '${difference.inHours}小时前';
+      return '${difference.inHours}${l10n.app_hour_ago}';
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}分钟前';
+      return '${difference.inMinutes}${l10n.app_minute_ago}';
     } else {
-      return '刚刚';
+      return l10n.app_just_now;
     }
   }
 

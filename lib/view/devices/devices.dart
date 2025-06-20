@@ -52,7 +52,7 @@ class DevicesPage extends StatelessWidget {
                 color: Colors.blue.shade100,
                 iconColor: Colors.blue,
                 onTap: () {
-                  Navigator.of(context).pushNamed('/device/collection');
+                  Navigator.pushNamed(context, '/device/collection');
                 },
               ),
               const SizedBox(height: 12),

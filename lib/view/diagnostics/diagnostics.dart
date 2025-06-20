@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class DataAnalysisPage extends StatelessWidget {
-  const DataAnalysisPage({super.key});
+class DiagnosticsPage extends StatelessWidget {
+  const DiagnosticsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +40,7 @@ class DataAnalysisPage extends StatelessWidget {
                 iconColor: Colors.blue,
                 onTap: () {
                   // 处理趋势分析
+                  Navigator.pushNamed(context, '/diagnostics/analysis');
                 },
               ),
               const SizedBox(height: 12),

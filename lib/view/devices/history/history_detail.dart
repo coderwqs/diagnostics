@@ -1,3 +1,4 @@
+import 'package:diagnosis/l10n/app_localizations.dart';
 import 'package:diagnosis/model/history.dart';
 import 'package:diagnosis/service/history.dart';
 import 'package:flutter/material.dart';
@@ -50,6 +51,7 @@ class _DetailPageState extends State<DetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
     final isOverload =
         _history.rotationSpeed != null && _history.rotationSpeed! > 1000;
@@ -57,16 +59,11 @@ class _DetailPageState extends State<DetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '数据详情',
+          l10n.history_detail,
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.share, size: 22),
-            tooltip: '分享数据',
-            onPressed: () => _shareData(context),
-          ),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert),
             itemBuilder: (context) => [
@@ -80,21 +77,17 @@ class _DetailPageState extends State<DetailPage> {
                       color: theme.iconTheme.color,
                     ),
                     SizedBox(width: 8),
-                    Text('导出数据'),
+                    Text(l10n.app_export_data),
                   ],
                 ),
               ),
               PopupMenuItem(
-                value: 'analyze',
+                value: 'share',
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.analytics,
-                      size: 20,
-                      color: theme.iconTheme.color,
-                    ),
+                    Icon(Icons.share, size: 20, color: theme.iconTheme.color),
                     SizedBox(width: 8),
-                    Text('高级分析'),
+                    Text(l10n.app_share_data),
                   ],
                 ),
               ),
@@ -107,9 +100,41 @@ class _DetailPageState extends State<DetailPage> {
         future: _historyFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return _buildLoadingIndicator();
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text(l10n.history_loading),
+                ],
+              ),
+            );
           } else if (snapshot.hasError) {
-            return _buildErrorWidget(snapshot.error.toString());
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  SizedBox(height: 16),
+                  Text(
+                    l10n.history_failed_loading,
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  SizedBox(height: 8),
+                  Text(snapshot.error.toString(), textAlign: TextAlign.center),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        _historyFuture = Future.delayed(Duration.zero);
+                      });
+                    },
+                    child: Text(l10n.app_retry),
+                  ),
+                ],
+              ),
+            );
           }
 
           return SingleChildScrollView(
@@ -118,19 +143,19 @@ class _DetailPageState extends State<DetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 设备概览卡片
-                _buildDeviceOverviewCard(isOverload, theme),
+                _buildDeviceOverviewCard(l10n, isOverload, theme),
                 SizedBox(height: 20),
 
                 // 图表类型选择
-                _buildChartTypeSelector(theme),
+                _buildChartTypeSelector(l10n, theme),
                 SizedBox(height: 16),
 
                 // 数据图表部分
-                _buildChartSection(theme),
+                _buildChartSection(l10n, theme),
                 SizedBox(height: 20),
 
                 // 数据统计卡片
-                _buildStatsCard(theme),
+                _buildStatsCard(l10n, theme),
               ],
             ),
           );
@@ -139,7 +164,11 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildDeviceOverviewCard(bool isOverload, ThemeData theme) {
+  Widget _buildDeviceOverviewCard(
+    AppLocalizations l10n,
+    bool isOverload,
+    ThemeData theme,
+  ) {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -153,7 +182,7 @@ class _DetailPageState extends State<DetailPage> {
           children: [
             Row(
               children: [
-                _buildStatusBadge(isOverload),
+                _buildStatusBadge(l10n, isOverload),
                 SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -184,7 +213,7 @@ class _DetailPageState extends State<DetailPage> {
                 IconButton(
                   icon: Icon(Icons.upload_rounded, size: 22),
                   onPressed: () => _exportData(context),
-                  tooltip: '导出数据',
+                  tooltip: l10n.app_export_data,
                   style: IconButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
                     shape: RoundedRectangleBorder(
@@ -202,26 +231,26 @@ class _DetailPageState extends State<DetailPage> {
               children: [
                 _buildMetricTile(
                   icon: Icons.speed_rounded,
-                  title: '采样率',
+                  title: l10n.history_sampling_rate,
                   value: '${_history.samplingRate} Hz',
                   color: theme.primaryColor,
                 ),
                 if (_history.rotationSpeed != null)
                   _buildMetricTile(
                     icon: Icons.rotate_right_rounded,
-                    title: '转速',
+                    title: l10n.history_rotation_speed,
                     value: '${_history.rotationSpeed} RPM',
                     color: isOverload ? Colors.red : Colors.green,
                   ),
                 _buildMetricTile(
                   icon: Icons.format_list_numbered_rounded,
-                  title: '数据点数',
+                  title: l10n.history_data_point,
                   value: '${_history.data.length}',
                   color: Colors.blueAccent,
                 ),
                 _buildMetricTile(
                   icon: Icons.timeline_rounded,
-                  title: '数据范围',
+                  title: l10n.history_data_range,
                   value:
                       '${_history.data.reduce((a, b) => a < b ? a : b).toStringAsFixed(2)} - '
                       '${_history.data.reduce((a, b) => a > b ? a : b).toStringAsFixed(2)}',
@@ -236,32 +265,39 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   void _exportData(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() => _isExporting = true);
 
     try {
-      final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
-      final defaultFileName = 'device_${_history.deviceId}_$timestamp';
+      final timestamp = DateFormat(
+        'yyyyMMdd_HHmmss',
+      ).format(DateTime.fromMillisecondsSinceEpoch(_history.dataTime));
+      final defaultFileName = '${_history.deviceName}_$timestamp';
 
       final fileContent = _generateCsvData();
 
       final directory = await getDownloadsDirectory();
-      if (directory == null) throw Exception('无法访问下载目录');
+      if (directory == null) throw Exception(l10n.history_failed_access);
 
       final file = File('${directory.path}/$defaultFileName.csv');
       await file.writeAsString(fileContent);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('数据已导出到下载目录'),
+          content: Text(l10n.history_export_tips),
           duration: Duration(seconds: 3),
           action: SnackBarAction(
-            label: '查看文件',
+            label: l10n.app_view_file,
             onPressed: () async {
               try {
                 await file.revealInFileExplorer();
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('无法打开目录: ${e.toString()}')),
+                  SnackBar(
+                    content: Text(
+                      '${l10n.history_failed_open_dir}: ${e.toString()}',
+                    ),
+                  ),
                 );
               }
             },
@@ -278,26 +314,28 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   void _showExportFallbackDialog(BuildContext context, String error) {
+    final l10n = AppLocalizations.of(context)!;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('导出遇到问题'),
+        title: Text(l10n.history_failed_export),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('自动保存失败: $error'),
+            Text('${l10n.history_auto_save_failed}: $error'),
             SizedBox(height: 16),
-            Text('您可以通过以下方式获取数据:'),
+            Text('${l10n.history_get_data_tips}:'),
           ],
         ),
         actions: [
           TextButton(
-            child: Text('取消'),
+            child: Text(l10n.app_cancel),
             onPressed: () => Navigator.pop(context),
           ),
           TextButton(
-            child: Text('分享数据'),
+            child: Text(l10n.app_share_data),
             onPressed: () {
               Navigator.pop(context);
               _shareDataFile(context);
@@ -309,19 +347,32 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   void _shareDataFile(BuildContext context) async {
+    if (Platform.isLinux) return;
+
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final csvData = _generateCsvData();
       final tempDir = await getTemporaryDirectory();
       final tempFile = File('${tempDir.path}/temp_export.csv');
       await tempFile.writeAsString(csvData);
 
-      await Share.shareXFiles([
-        XFile(tempFile.path),
-      ], text: '设备${_history.deviceId}的监测数据');
+      final params = ShareParams(
+        text: l10n.history_share_title(_history.deviceName as Object),
+        files: [XFile(tempFile.path)],
+      );
+
+      final result = await SharePlus.instance.share(params);
+
+      if (result.status == ShareResultStatus.success) {
+        print('Thank you for sharing the picture!');
+      }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('分享失败: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.history_share_failed}: ${e.toString()}'),
+        ),
+      );
     }
   }
 
@@ -340,7 +391,7 @@ class _DetailPageState extends State<DetailPage> {
     return buffer.toString();
   }
 
-  Widget _buildStatusBadge(bool isOverload) {
+  Widget _buildStatusBadge(AppLocalizations l10n, bool isOverload) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -365,7 +416,9 @@ class _DetailPageState extends State<DetailPage> {
           ),
           SizedBox(width: 6),
           Text(
-            isOverload ? '过载' : '正常',
+            isOverload
+                ? l10n.history_status_loader
+                : l10n.history_status_normal,
             style: TextStyle(
               color: isOverload ? Colors.red : Colors.green,
               fontWeight: FontWeight.bold,
@@ -421,17 +474,17 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildChartTypeSelector(ThemeData theme) {
+  Widget _buildChartTypeSelector(AppLocalizations l10n, ThemeData theme) {
     return SegmentedButton<int>(
       segments: [
         ButtonSegment(
           value: 0,
-          label: Text('折线图'),
+          label: Text(l10n.app_line_chart),
           icon: Icon(Icons.show_chart, size: 18),
         ),
         ButtonSegment(
           value: 1,
-          label: Text('柱状图'),
+          label: Text(l10n.app_bar_chart),
           icon: Icon(Icons.bar_chart, size: 18),
         ),
       ],
@@ -445,7 +498,7 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildChartSection(ThemeData theme) {
+  Widget _buildChartSection(AppLocalizations l10n, ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -453,7 +506,7 @@ class _DetailPageState extends State<DetailPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '数据趋势分析',
+              l10n.history_trend_analysis,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -461,7 +514,7 @@ class _DetailPageState extends State<DetailPage> {
             IconButton(
               icon: Icon(Icons.fullscreen, size: 20),
               onPressed: () => _showFullscreenChart(context),
-              tooltip: '全屏查看',
+              tooltip: l10n.app_full_screen,
             ),
           ],
         ),
@@ -484,8 +537,8 @@ class _DetailPageState extends State<DetailPage> {
             child: Stack(
               children: [
                 _selectedChartType == 0
-                    ? _buildLineChart(_history.data)
-                    : _buildBarChart(_history.data),
+                    ? _buildLineChart(l10n, _history.data)
+                    : _buildBarChart(l10n, _history.data),
                 Positioned(
                   right: 12,
                   top: 12,
@@ -496,7 +549,7 @@ class _DetailPageState extends State<DetailPage> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      '${_history.data.length}个数据点',
+                      '${_history.data.length}${l10n.history_points}',
                       style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
@@ -509,7 +562,7 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildLineChart(List<double> data) {
+  Widget _buildLineChart(AppLocalizations l10n, List<double> data) {
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
       primaryXAxis: NumericAxis(
@@ -545,12 +598,12 @@ class _DetailPageState extends State<DetailPage> {
       ],
       tooltipBehavior: TooltipBehavior(
         enable: true,
-        format: '点: point.x\n值: point.y',
+        format: '${l10n.app_time}: point.x\n${l10n.app_amplitude}: point.y',
       ),
     );
   }
 
-  Widget _buildBarChart(List<double> data) {
+  Widget _buildBarChart(AppLocalizations l10n, List<double> data) {
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
       primaryXAxis: NumericAxis(
@@ -579,7 +632,7 @@ class _DetailPageState extends State<DetailPage> {
       ],
       tooltipBehavior: TooltipBehavior(
         enable: true,
-        format: '点: point.x\n值: point.y',
+        format: '${l10n.app_time}: point.x\n${l10n.app_amplitude}: point.y',
       ),
     );
   }
@@ -590,7 +643,7 @@ class _DetailPageState extends State<DetailPage> {
     return (dataLength / 10).ceilToDouble();
   }
 
-  Widget _buildStatsCard(ThemeData theme) {
+  Widget _buildStatsCard(AppLocalizations l10n, ThemeData theme) {
     final data = _history.data;
     final minVal = data.reduce((a, b) => a < b ? a : b);
     final maxVal = data.reduce((a, b) => a > b ? a : b);
@@ -611,7 +664,7 @@ class _DetailPageState extends State<DetailPage> {
             Row(
               children: [
                 Text(
-                  '数据统计',
+                  l10n.history_data_statistics,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -623,40 +676,34 @@ class _DetailPageState extends State<DetailPage> {
               spacing: 16,
               children: [
                 _buildCompactStatItem(
-                  '最小值',
+                  l10n.app_min_value,
                   minVal.toStringAsFixed(2),
                   Icons.arrow_downward,
                   Colors.blue,
                 ),
                 _buildCompactStatItem(
-                  '最大值',
+                  l10n.app_max_value,
                   maxVal.toStringAsFixed(2),
                   Icons.arrow_upward,
                   Colors.red,
                 ),
                 _buildCompactStatItem(
-                  '平均值',
+                  l10n.app_average_value,
                   avgVal.toStringAsFixed(2),
                   Icons.trending_flat,
                   Colors.green,
                 ),
                 _buildCompactStatItem(
-                  '标准差',
+                  l10n.app_standard_deviation_value,
                   stdDev.toStringAsFixed(2),
                   Icons.science,
                   Colors.purple,
                 ),
                 _buildCompactStatItem(
-                  '中位数',
+                  l10n.app_median_value,
                   _calculateMedian(data).toStringAsFixed(2),
                   Icons.line_weight,
                   Colors.orange,
-                ),
-                _buildCompactStatItem(
-                  '变异系数',
-                  (stdDev / avgVal).toStringAsFixed(4),
-                  Icons.compare,
-                  Colors.teal,
                 ),
               ],
             ),
@@ -673,7 +720,8 @@ class _DetailPageState extends State<DetailPage> {
     Color color,
   ) {
     return Container(
-      width: 140,
+      width: 210,
+      height: 80,
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
@@ -689,6 +737,8 @@ class _DetailPageState extends State<DetailPage> {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             padding: EdgeInsets.all(12),
@@ -698,29 +748,31 @@ class _DetailPageState extends State<DetailPage> {
             ),
             child: Icon(icon, size: 18, color: color),
           ),
-          SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 10,
-                  color: Theme.of(context).hintColor,
-                  letterSpacing: 0.5,
+          Container(
+            padding: EdgeInsets.all(8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).hintColor,
+                  ),
                 ),
-              ),
-              SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                  height: 1.2,
+                SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                    height: 1.2,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -746,6 +798,8 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   void _showFullscreenChart(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -763,7 +817,7 @@ class _DetailPageState extends State<DetailPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '设备 ${_history.deviceId} - 数据趋势',
+                  '${_history.deviceName} - ${l10n.history_data_trend}',
                   style: Theme.of(
                     context,
                   ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
@@ -777,43 +831,11 @@ class _DetailPageState extends State<DetailPage> {
             SizedBox(height: 16),
             Expanded(
               child: _selectedChartType == 0
-                  ? _buildLineChart(_history.data)
-                  : _buildBarChart(_history.data),
-            ),
-            SizedBox(height: 16),
-            TextButton(
-              onPressed: () => _exportChartAsImage(context),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.image, size: 18),
-                  SizedBox(width: 8),
-                  Text('保存为图片'),
-                ],
-              ),
+                  ? _buildLineChart(l10n, _history.data)
+                  : _buildBarChart(l10n, _history.data),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Future<void> _exportChartAsImage(BuildContext context) async {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('图表导出功能将在后续版本中提供'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
-
-  void _shareData(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('分享功能将在后续版本中提供'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
@@ -823,66 +845,9 @@ class _DetailPageState extends State<DetailPage> {
       case 'export':
         _exportData(context);
         break;
-      case 'analyze':
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => AdvancedAnalysisPage(history: _history),
-          ),
-        );
+      case 'share':
+        _shareDataFile(context);
         break;
     }
-  }
-
-  Widget _buildLoadingIndicator() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(),
-          SizedBox(height: 16),
-          Text('加载数据中...'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorWidget(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, color: Colors.red, size: 48),
-          SizedBox(height: 16),
-          Text('加载失败', style: TextStyle(fontSize: 18)),
-          SizedBox(height: 8),
-          Text(error, textAlign: TextAlign.center),
-          SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _historyFuture = Future.delayed(Duration.zero);
-              });
-            },
-            child: Text('重试'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class AdvancedAnalysisPage extends StatelessWidget {
-  final History history;
-
-  const AdvancedAnalysisPage({Key? key, required this.history})
-    : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('高级分析')),
-      body: Center(child: Text('高级分析功能开发中...')),
-    );
   }
 }
