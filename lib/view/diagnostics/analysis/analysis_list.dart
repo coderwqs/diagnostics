@@ -35,7 +35,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
       deviceDataHistory = [];
     });
 
-    await Future.delayed(Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 500));
 
     final random = RandomDataGenerator(device.hashCode);
     final now = DateTime.now();
@@ -74,7 +74,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
       });
     }
 
-    await Future.delayed(Duration(milliseconds: 300));
+    await Future.delayed(const Duration(milliseconds: 300));
 
     final random = RandomDataGenerator(selectedDevice.hashCode);
     final now = record.timestamp;
@@ -103,67 +103,79 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(title: const Text('设备数据分析'), elevation: 0),
       body: Container(
-        color: Colors.grey[50],
+        color: colorScheme.surfaceVariant.withOpacity(0.1),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildLeftPanel(),
-            Expanded(child: _buildRightPanel()),
+            _buildLeftPanel(colorScheme, textTheme),
+            Expanded(child: _buildRightPanel(colorScheme, textTheme)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLeftPanel() {
+  Widget _buildLeftPanel(ColorScheme colorScheme, TextTheme textTheme) {
     return Container(
-      width: 300,
+      width: 320,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(2, 0)),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 12,
+            offset: const Offset(2, 0),
+          ),
         ],
       ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         children: [
-          _buildDeviceListSection(),
-          Expanded(child: _buildDataHistorySection()),
+          _buildDeviceListSection(colorScheme, textTheme),
+          const SizedBox(height: 8),
+          Expanded(child: _buildDataHistorySection(colorScheme, textTheme)),
         ],
       ),
     );
   }
 
-  Widget _buildDeviceListSection() {
+  Widget _buildDeviceListSection(ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
-      margin: EdgeInsets.all(12),
+      margin: const EdgeInsets.all(12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                Icon(Icons.device_hub, color: Colors.blueGrey),
-                SizedBox(width: 8),
+                Icon(Icons.device_hub, color: colorScheme.primary),
+                const SizedBox(width: 12),
                 Text(
                   '设备列表',
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey[800],
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, thickness: 1),
-          Container(
+          const Divider(height: 1, thickness: 1),
+          SizedBox(
             height: 220,
-            child: ListView.builder(
+            child: ListView.separated(
               padding: EdgeInsets.zero,
               itemCount: devices.length,
+              separatorBuilder: (context, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final device = devices[index];
                 return Material(
@@ -176,18 +188,18 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                       _fetchDeviceHistory(device);
                     },
                     child: Container(
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 12,
+                        vertical: 16,
                       ),
                       decoration: BoxDecoration(
                         color: device == selectedDevice
-                            ? Colors.blueGrey[50]
+                            ? colorScheme.primary.withOpacity(0.08)
                             : Colors.transparent,
                         border: Border(
                           left: BorderSide(
                             color: device == selectedDevice
-                                ? Theme.of(context).primaryColor
+                                ? colorScheme.primary
                                 : Colors.transparent,
                             width: 4,
                           ),
@@ -198,19 +210,27 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                           Icon(
                             Icons.sensors,
                             color: device == selectedDevice
-                                ? Theme.of(context).primaryColor
-                                : Colors.grey[600],
+                                ? colorScheme.primary
+                                : colorScheme.onSurface.withOpacity(0.6),
+                            size: 22,
                           ),
-                          SizedBox(width: 12),
-                          Text(
-                            device,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: device == selectedDevice
-                                  ? Colors.blueGrey[800]
-                                  : Colors.grey[700],
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text(
+                              device,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: device == selectedDevice
+                                    ? colorScheme.onSurface
+                                    : colorScheme.onSurface.withOpacity(0.8),
+                              ),
                             ),
                           ),
+                          if (device == selectedDevice)
+                            Icon(
+                              Icons.check_circle,
+                              color: colorScheme.primary,
+                              size: 18,
+                            ),
                         ],
                       ),
                     ),
@@ -224,50 +244,60 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildDataHistorySection() {
+  Widget _buildDataHistorySection(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
     return Card(
-      margin: EdgeInsets.all(12),
+      margin: const EdgeInsets.all(12),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
-                Icon(Icons.history, color: Colors.blueGrey),
-                SizedBox(width: 8),
+                Icon(Icons.history, color: colorScheme.primary),
+                const SizedBox(width: 12),
                 Text(
                   '数据记录',
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey[800],
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
           ),
-          Divider(height: 1, thickness: 1),
+          const Divider(height: 1, thickness: 1),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Colors.blueGrey[50],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withOpacity(0.2),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(0),
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
                   flex: 2,
                   child: Text(
                     '时间',
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey[800],
+                      color: colorScheme.onSurface.withOpacity(0.8),
                     ),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     'RMS值',
-                    style: TextStyle(
+                    style: textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey[800],
+                      color: colorScheme.onSurface.withOpacity(0.8),
                     ),
                     textAlign: TextAlign.right,
                   ),
@@ -275,13 +305,19 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               ],
             ),
           ),
-          Divider(height: 1, thickness: 1),
+          const Divider(height: 1, thickness: 1),
           Expanded(
             child: isLoading
-                ? Center(child: CircularProgressIndicator())
-                : ListView.builder(
+                ? Center(
+                    child: CircularProgressIndicator(
+                      color: colorScheme.primary,
+                    ),
+                  )
+                : ListView.separated(
                     padding: EdgeInsets.zero,
                     itemCount: deviceDataHistory.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final record = deviceDataHistory[index];
                       return Material(
@@ -291,18 +327,18 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                             _fetchDataDetails(record);
                           },
                           child: Container(
-                            padding: EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 12,
                             ),
                             decoration: BoxDecoration(
                               color: selectedDataRecord == record
-                                  ? Colors.blue[50]
+                                  ? colorScheme.primary.withOpacity(0.08)
                                   : Colors.transparent,
                               border: Border(
                                 left: BorderSide(
                                   color: selectedDataRecord == record
-                                      ? Colors.blue
+                                      ? colorScheme.primary
                                       : Colors.transparent,
                                   width: 4,
                                 ),
@@ -316,9 +352,10 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                                     DateFormat(
                                       'HH:mm:ss',
                                     ).format(record.timestamp),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.blueGrey[800],
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurface.withOpacity(
+                                        0.8,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -326,8 +363,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                                   child: Text(
                                     record.rmsValue.toStringAsFixed(2),
                                     textAlign: TextAlign.right,
-                                    style: TextStyle(
-                                      fontSize: 14,
+                                    style: textTheme.bodyMedium?.copyWith(
                                       color: _getValueColor(record.rmsValue),
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -346,56 +382,65 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildRightPanel() {
+  Widget _buildRightPanel(ColorScheme colorScheme, TextTheme textTheme) {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildDeviceInfoCard(),
-            SizedBox(height: 16),
-            _buildChartCard(
-              title: '时域波形',
-              icon: Icons.show_chart,
-              child: isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : currentWaveformData.isEmpty
-                  ? Center(
-                      child: Text(
-                        '无波形数据',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : _buildWaveformChart(),
+            _buildDeviceInfoCard(colorScheme, textTheme),
+            const SizedBox(height: 16),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: 280,
+                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              ),
+              child: _buildChartCard(
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+                title: '时域波形',
+                icon: Icons.show_chart,
+                child: isLoading
+                    ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+                    : currentWaveformData.isEmpty
+                    ? Center(child: Text('无波形数据', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))))
+                    : _buildWaveformChart(colorScheme),
+              ),
             ),
-            SizedBox(height: 16),
-            _buildChartCard(
-              title: '频域频谱',
-              icon: Icons.bar_chart,
-              child: isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : currentSpectrumData.isEmpty
-                  ? Center(
-                      child: Text(
-                        '无频谱数据',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  : _buildSpectrumChart(),
+            const SizedBox(height: 16),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: 280,
+                maxHeight: MediaQuery.of(context).size.height * 0.4,
+              ),
+              child: _buildChartCard(
+                colorScheme: colorScheme,
+                textTheme: textTheme,
+                title: '频域频谱',
+                icon: Icons.bar_chart,
+                child: isLoading
+                    ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+                    : currentSpectrumData.isEmpty
+                    ? Center(child: Text('无频谱数据', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))))
+                    : _buildSpectrumChart(colorScheme),
+              ),
             ),
           ],
         ),
       ),
     );
   }
-
   Widget _buildChartCard({
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
     required String title,
     required IconData icon,
     required Widget child,
   }) {
     return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -403,25 +448,23 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
           children: [
             Row(
               children: [
-                Icon(icon, color: Colors.blueGrey),
-                SizedBox(width: 8),
+                Icon(icon, color: colorScheme.primary),
+                const SizedBox(width: 12),
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 16,
+                  style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Colors.blueGrey[800],
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 12),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: 280,
-                maxHeight: MediaQuery.of(context).size.height * 0.4,
+            const SizedBox(height: 16),
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: child,
               ),
-              child: child,
             ),
           ],
         ),
@@ -429,45 +472,48 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildDeviceInfoCard() {
+  Widget _buildDeviceInfoCard(ColorScheme colorScheme, TextTheme textTheme) {
     if (selectedDevice == null || selectedDataRecord == null) {
-      return SizedBox();
+      return const SizedBox();
     }
 
     return Card(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blueGrey[50],
+                color: colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 Icons.analytics,
-                size: 30,
-                color: Theme.of(context).primaryColor,
+                size: 28,
+                color: colorScheme.primary,
               ),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     selectedDevice!,
-                    style: TextStyle(
-                      fontSize: 18,
+                    style: textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey[800],
+                      color: colorScheme.onSurface,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     '最新记录: ${DateFormat('yyyy-MM-dd HH:mm').format(selectedDataRecord!.timestamp)}',
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                 ],
               ),
@@ -477,24 +523,25 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               children: [
                 Text(
                   '${selectedDataRecord!.rmsValue.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 24,
+                  style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: _getValueColor(selectedDataRecord!.rmsValue),
                   ),
                 ),
-                SizedBox(height: 4),
+                const SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getStatusColor(selectedDataRecord!.rmsValue),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     _getStatusLabel(selectedDataRecord!.rmsValue),
-                    style: TextStyle(
+                    style: textTheme.labelSmall?.copyWith(
                       color: _getStatusTextColor(selectedDataRecord!.rmsValue),
-                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -507,7 +554,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildWaveformChart() {
+  Widget _buildWaveformChart(ColorScheme colorScheme) {
     return LineChart(
       LineChartData(
         lineTouchData: LineTouchData(
@@ -518,17 +565,25 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 final data = currentWaveformData[spot.x.toInt()];
                 return LineTooltipItem(
                   '${DateFormat('HH:mm:ss.S').format(data.timestamp!)}\n幅值: ${spot.y.toStringAsFixed(2)}',
-                  TextStyle(color: Colors.white),
+                  TextStyle(color: colorScheme.onPrimary, fontSize: 12),
                 );
               }).toList();
             },
+            tooltipBorderRadius: BorderRadius.all(Radius.circular(8.0)),
+            tooltipPadding: const EdgeInsets.all(12),
+            tooltipMargin: 8,
+            getTooltipColor: (LineBarSpot touchedSpot) => colorScheme.primary,
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
           ),
         ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (value) =>
-              FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: colorScheme.surfaceVariant.withOpacity(0.3),
+            strokeWidth: 1,
+          ),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
@@ -537,7 +592,10 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toStringAsFixed(1),
-                  style: TextStyle(fontSize: 10),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                  ),
                 );
               },
               reservedSize: 40,
@@ -553,10 +611,13 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                     DateFormat(
                       'ss.S',
                     ).format(currentWaveformData[value.toInt()].timestamp!),
-                    style: TextStyle(fontSize: 10),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   );
                 }
-                return SizedBox();
+                return const SizedBox();
               },
               reservedSize: 20,
             ),
@@ -566,7 +627,9 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         ),
         borderData: FlBorderData(
           show: true,
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(
+            color: colorScheme.surfaceVariant.withOpacity(0.5),
+          ),
         ),
         minX: 0,
         maxX: currentWaveformData.length.toDouble() - 1,
@@ -582,14 +645,14 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               return FlSpot(entry.key.toDouble(), entry.value.value);
             }).toList(),
             isCurved: true,
-            color: Colors.blueAccent,
+            color: colorScheme.primary,
             barWidth: 2,
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
                 colors: [
-                  Colors.blueAccent.withOpacity(0.3),
-                  Colors.blueAccent.withOpacity(0.1),
+                  colorScheme.primary.withOpacity(0.3),
+                  colorScheme.primary.withOpacity(0.1),
                 ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -602,7 +665,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildSpectrumChart() {
+  Widget _buildSpectrumChart(ColorScheme colorScheme) {
     return BarChart(
       BarChartData(
         barTouchData: BarTouchData(
@@ -612,16 +675,26 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               final data = currentSpectrumData[group.x.toInt()];
               return BarTooltipItem(
                 '${data.frequency!.toStringAsFixed(1)}Hz\n幅值: ${rod.toY.toStringAsFixed(2)}',
-                TextStyle(color: Colors.white),
+                TextStyle(color: colorScheme.onPrimary, fontSize: 12),
+                textAlign: TextAlign.left,
               );
             },
+            tooltipMargin: 8,
+            tooltipPadding: const EdgeInsets.all(8),
+            tooltipBorderRadius: BorderRadius.all(Radius.circular(8.0)),
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
+            direction: TooltipDirection.top,
+            getTooltipColor: (BarChartGroupData group) => colorScheme.primary,
           ),
         ),
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
-          getDrawingHorizontalLine: (value) =>
-              FlLine(color: Colors.grey[200]!, strokeWidth: 1),
+          getDrawingHorizontalLine: (value) => FlLine(
+            color: colorScheme.surfaceVariant.withOpacity(0.3),
+            strokeWidth: 1,
+          ),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
@@ -630,7 +703,10 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               getTitlesWidget: (value, meta) {
                 return Text(
                   value.toStringAsFixed(1),
-                  style: TextStyle(fontSize: 10),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: colorScheme.onSurface.withOpacity(0.6),
+                  ),
                 );
               },
               reservedSize: 40,
@@ -644,10 +720,13 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                     value.toInt() < currentSpectrumData.length) {
                   return Text(
                     '${currentSpectrumData[value.toInt()].frequency!.toStringAsFixed(0)}Hz',
-                    style: TextStyle(fontSize: 10),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   );
                 }
-                return SizedBox();
+                return const SizedBox();
               },
               reservedSize: 20,
             ),
@@ -657,15 +736,17 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         ),
         borderData: FlBorderData(
           show: true,
-          border: Border.all(color: Colors.grey[300]!),
+          border: Border.all(
+            color: colorScheme.surfaceVariant.withOpacity(0.5),
+          ),
         ),
         groupsSpace: 4,
         barGroups: currentSpectrumData.asMap().entries.map((entry) {
           final color = entry.value.value > 8
-              ? Colors.red[400]!
+              ? colorScheme.error
               : entry.value.value > 5
-              ? Colors.orange[400]!
-              : Colors.green[400]!;
+              ? colorScheme.primary
+              : colorScheme.tertiary;
 
           return BarChartGroupData(
             x: entry.key,
@@ -674,8 +755,10 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 fromY: 0,
                 toY: entry.value.value,
                 color: color,
-                width: 12,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                width: 16,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(4),
+                ),
               ),
             ],
           );
@@ -691,21 +774,21 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   Color _getStatusColor(double value) {
-    if (value > 8) return Colors.red[100]!;
-    if (value > 5) return Colors.orange[100]!;
-    return Colors.green[100]!;
+    if (value > 8) return Colors.red.withOpacity(0.2);
+    if (value > 5) return Colors.orange.withOpacity(0.2);
+    return Colors.green.withOpacity(0.2);
   }
 
   Color _getStatusTextColor(double value) {
-    if (value > 8) return Colors.red[800]!;
-    if (value > 5) return Colors.orange[800]!;
-    return Colors.green[800]!;
+    if (value > 8) return Colors.red;
+    if (value > 5) return Colors.orange;
+    return Colors.green;
   }
 
   Color _getValueColor(double value) {
-    if (value > 8) return Colors.red[800]!;
-    if (value > 5) return Colors.orange[800]!;
-    return Colors.green[800]!;
+    if (value > 8) return Colors.red;
+    if (value > 5) return Colors.orange;
+    return Colors.green;
   }
 }
 
