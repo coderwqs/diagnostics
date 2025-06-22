@@ -58,9 +58,9 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   Future<void> _fetchDataDetails(
-    DeviceData record, {
-    bool shouldRebuildHistory = true,
-  }) async {
+      DeviceData record, {
+        bool shouldRebuildHistory = true,
+      }) async {
     if (!shouldRebuildHistory) {
       setState(() {
         currentWaveformData = [];
@@ -245,9 +245,9 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   Widget _buildDataHistorySection(
-    ColorScheme colorScheme,
-    TextTheme textTheme,
-  ) {
+      ColorScheme colorScheme,
+      TextTheme textTheme,
+      ) {
     return Card(
       margin: const EdgeInsets.all(12),
       elevation: 0,
@@ -309,73 +309,73 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
           Expanded(
             child: isLoading
                 ? Center(
-                    child: CircularProgressIndicator(
-                      color: colorScheme.primary,
-                    ),
-                  )
+              child: CircularProgressIndicator(
+                color: colorScheme.primary,
+              ),
+            )
                 : ListView.separated(
-                    padding: EdgeInsets.zero,
-                    itemCount: deviceDataHistory.length,
-                    separatorBuilder: (context, index) =>
-                        const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final record = deviceDataHistory[index];
-                      return Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: () {
-                            _fetchDataDetails(record);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            decoration: BoxDecoration(
-                              color: selectedDataRecord == record
-                                  ? colorScheme.primary.withOpacity(0.08)
-                                  : Colors.transparent,
-                              border: Border(
-                                left: BorderSide(
-                                  color: selectedDataRecord == record
-                                      ? colorScheme.primary
-                                      : Colors.transparent,
-                                  width: 4,
+              padding: EdgeInsets.zero,
+              itemCount: deviceDataHistory.length,
+              separatorBuilder: (context, index) =>
+              const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final record = deviceDataHistory[index];
+                return Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      _fetchDataDetails(record);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: selectedDataRecord == record
+                            ? colorScheme.primary.withOpacity(0.08)
+                            : Colors.transparent,
+                        border: Border(
+                          left: BorderSide(
+                            color: selectedDataRecord == record
+                                ? colorScheme.primary
+                                : Colors.transparent,
+                            width: 4,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              DateFormat(
+                                'HH:mm:ss',
+                              ).format(record.timestamp),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurface.withOpacity(
+                                  0.8,
                                 ),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  flex: 2,
-                                  child: Text(
-                                    DateFormat(
-                                      'HH:mm:ss',
-                                    ).format(record.timestamp),
-                                    style: textTheme.bodySmall?.copyWith(
-                                      color: colorScheme.onSurface.withOpacity(
-                                        0.8,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    record.rmsValue.toStringAsFixed(2),
-                                    textAlign: TextAlign.right,
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: _getValueColor(record.rmsValue),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                          ),
+                          Expanded(
+                            child: Text(
+                              record.rmsValue.toStringAsFixed(2),
+                              textAlign: TextAlign.right,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: _getValueColor(record.rmsValue),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
+                        ],
+                      ),
+                    ),
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -402,9 +402,20 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 title: '时域波形',
                 icon: Icons.show_chart,
                 child: isLoading
-                    ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+                    ? Center(
+                  child: CircularProgressIndicator(
+                    color: colorScheme.primary,
+                  ),
+                )
                     : currentWaveformData.isEmpty
-                    ? Center(child: Text('无波形数据', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))))
+                    ? Center(
+                  child: Text(
+                    '无波形数据',
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                )
                     : _buildWaveformChart(colorScheme),
               ),
             ),
@@ -420,9 +431,20 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 title: '频域频谱',
                 icon: Icons.bar_chart,
                 child: isLoading
-                    ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+                    ? Center(
+                  child: CircularProgressIndicator(
+                    color: colorScheme.primary,
+                  ),
+                )
                     : currentSpectrumData.isEmpty
-                    ? Center(child: Text('无频谱数据', style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))))
+                    ? Center(
+                  child: Text(
+                    '无频谱数据',
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withOpacity(0.5),
+                    ),
+                  ),
+                )
                     : _buildSpectrumChart(colorScheme),
               ),
             ),
@@ -431,6 +453,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
       ),
     );
   }
+
   Widget _buildChartCard({
     required ColorScheme colorScheme,
     required TextTheme textTheme,
@@ -555,6 +578,8 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   Widget _buildWaveformChart(ColorScheme colorScheme) {
+    final gradientColors = [colorScheme.primary, colorScheme.tertiary];
+
     return LineChart(
       LineChartData(
         lineTouchData: LineTouchData(
@@ -565,14 +590,19 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 final data = currentWaveformData[spot.x.toInt()];
                 return LineTooltipItem(
                   '${DateFormat('HH:mm:ss.S').format(data.timestamp!)}\n幅值: ${spot.y.toStringAsFixed(2)}',
-                  TextStyle(color: colorScheme.onPrimary, fontSize: 12),
+                  TextStyle(
+                    color: colorScheme.onPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
                 );
               }).toList();
             },
-            tooltipBorderRadius: BorderRadius.all(Radius.circular(8.0)),
+            tooltipBorderRadius: BorderRadius.circular(8),
             tooltipPadding: const EdgeInsets.all(12),
             tooltipMargin: 8,
-            getTooltipColor: (LineBarSpot touchedSpot) => colorScheme.primary,
+            getTooltipColor: (LineBarSpot touchedSpot) =>
+                colorScheme.primary.withOpacity(0.9),
             fitInsideHorizontally: true,
             fitInsideVertically: true,
           ),
@@ -580,46 +610,55 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         gridData: FlGridData(
           show: true,
           drawVerticalLine: false,
+          horizontalInterval: _calculateGridInterval(),
           getDrawingHorizontalLine: (value) => FlLine(
-            color: colorScheme.surfaceVariant.withOpacity(0.3),
+            color: colorScheme.outline.withOpacity(0.2),
             strokeWidth: 1,
+            dashArray: [4, 4],
           ),
         ),
         titlesData: FlTitlesData(
           leftTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              interval: _calculateGridInterval(),
               getTitlesWidget: (value, meta) {
-                return Text(
-                  value.toStringAsFixed(1),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: colorScheme.onSurface.withOpacity(0.6),
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: Text(
+                    value.toStringAsFixed(1),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                 );
               },
-              reservedSize: 40,
+              reservedSize: 42,
             ),
           ),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              interval: (currentWaveformData.length / 5).roundToDouble(),
               getTitlesWidget: (value, meta) {
-                if (value % 20 == 0 &&
-                    value.toInt() < currentWaveformData.length) {
-                  return Text(
-                    DateFormat(
-                      'ss.S',
-                    ).format(currentWaveformData[value.toInt()].timestamp!),
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: colorScheme.onSurface.withOpacity(0.6),
+                if (value.toInt() < currentWaveformData.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      DateFormat(
+                        'ss.S',
+                      ).format(currentWaveformData[value.toInt()].timestamp!),
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: colorScheme.onSurface.withOpacity(0.6),
+                      ),
                     ),
                   );
                 }
                 return const SizedBox();
               },
-              reservedSize: 20,
+              reservedSize: 28,
             ),
           ),
           rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -628,41 +667,82 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         borderData: FlBorderData(
           show: true,
           border: Border.all(
-            color: colorScheme.surfaceVariant.withOpacity(0.5),
+            color: colorScheme.outline.withOpacity(0.3),
+            width: 1,
           ),
         ),
         minX: 0,
         maxX: currentWaveformData.length.toDouble() - 1,
         minY: 0,
         maxY:
-            currentWaveformData
-                .map((e) => e.value)
-                .reduce((a, b) => a > b ? a : b) *
-            1.2,
+        currentWaveformData
+            .map((e) => e.value)
+            .reduce((a, b) => a > b ? a : b) *
+            1.3,
         lineBarsData: [
           LineChartBarData(
             spots: currentWaveformData.asMap().entries.map((entry) {
               return FlSpot(entry.key.toDouble(), entry.value.value);
             }).toList(),
             isCurved: true,
+            curveSmoothness: 0.3,
             color: colorScheme.primary,
-            barWidth: 2,
+            barWidth: 3,
+            shadow: BoxShadow(
+              color: colorScheme.primary.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
             belowBarData: BarAreaData(
               show: true,
               gradient: LinearGradient(
-                colors: [
-                  colorScheme.primary.withOpacity(0.3),
-                  colorScheme.primary.withOpacity(0.1),
-                ],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
+                colors: [
+                  colorScheme.primary.withOpacity(0.3),
+                  colorScheme.primary.withOpacity(0.05),
+                ],
+                stops: const [0.1, 1.0],
               ),
             ),
-            dotData: FlDotData(show: false),
+            aboveBarData: BarAreaData(
+              show: true,
+              color: colorScheme.primary.withOpacity(0.02),
+            ),
+            dotData: FlDotData(
+              show: true,
+              getDotPainter: (spot, percent, barData, index) {
+                return FlDotCirclePainter(
+                  radius: 3,
+                  color: colorScheme.primary,
+                  strokeWidth: 2,
+                  strokeColor: colorScheme.surface,
+                );
+              },
+              checkToShowDot: (spot, barData) {
+                final x = spot.x;
+                final index = x.round();
+                return index % 10 == 0;
+              },
+            ),
+            gradient: LinearGradient(
+              colors: gradientColors,
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  double _calculateGridInterval() {
+    final maxValue =
+        currentWaveformData
+            .map((e) => e.value)
+            .reduce((a, b) => a > b ? a : b) *
+            1.3;
+    return (maxValue / 4).roundToDouble();
   }
 
   Widget _buildSpectrumChart(ColorScheme colorScheme) {
