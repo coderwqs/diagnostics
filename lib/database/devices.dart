@@ -4,23 +4,6 @@ import 'package:diagnosis/model/device.dart';
 class DeviceDatabase {
   final DatabaseUtils _dbUtils = DatabaseUtils();
 
-  Future<void> initializeDatabase() async {
-    String schema = '''
-      CREATE TABLE IF NOT EXISTS devices (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          type TEXT NOT NULL,
-          identity TEXT NOT NULL UNIQUE,
-          secret TEXT NOT NULL,
-          status TEXT CHECK (status IN ('online', 'offline', 'warning')) DEFAULT 'offline',
-          lastActive INTEGER NOT NULL,
-          createdAt INTEGER NOT NULL,
-          image BLOB NOT NULL
-      )
-    ''';
-    await _dbUtils.createTable(schema);
-  }
-
   Future<void> addDevice(Device device) async {
     String sql = '''
       INSERT INTO devices (id, name, image, type, identity, secret, status, lastActive, createdAt)
@@ -29,9 +12,11 @@ class DeviceDatabase {
     await _dbUtils.insert(sql);
   }
 
-  Future<List<Device>> getAllDevices() async {
-    String sql = 'SELECT * FROM devices';
-    final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
+  Future<List<Device>> getAllDevices(int page, int limit) async {
+    int offset = (page - 1) * limit;
+
+    String sql = 'SELECT * FROM devices LIMIT $limit OFFSET $offset';
+    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql);
     return List.generate(maps.length, (i) {
       return Device.fromJson(maps[i]);
     });

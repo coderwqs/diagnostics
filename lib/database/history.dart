@@ -4,22 +4,6 @@ import 'package:diagnosis/utils/database.dart';
 class HistoryDatabase {
   final DatabaseUtils _dbUtils = DatabaseUtils();
 
-  Future<void> initializeDatabase() async {
-    String schema = '''
-      CREATE TABLE IF NOT EXISTS history (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        deviceId TEXT NOT NULL,
-        dataTime INTEGER NOT NULL,
-        samplingRate REAL NOT NULL,
-        rotationSpeed INTEGER,
-        data BLOB NOT NULL,
-        createdAt INTEGER NOT NULL,
-        FOREIGN KEY (deviceId) REFERENCES devices(id)
-      )
-    ''';
-    await _dbUtils.createTable(schema);
-  }
-
   Future<void> addHistory(History history) async {
     String sql =
         '''
@@ -38,7 +22,7 @@ class HistoryDatabase {
       h.createdAt, d.name AS deviceName FROM history h 
       LEFT JOIN devices d ON d.id = h.deviceId LIMIT $limit OFFSET $offset
     ''';
-    final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
+    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql);
 
     return List.generate(maps.length, (i) {
       return ExtendedHistory.fromMap(maps[i]);
@@ -57,7 +41,7 @@ class HistoryDatabase {
     WHERE h.deviceId = '$deviceId' AND h.id = $historyId;
   ''';
 
-    final Map<String, dynamic>? map = await _dbUtils.retrieve(sql);
+    final Map<String, dynamic>? map = await _dbUtils.querySingle(sql);
 
     if (map != null) {
       return ExtendedHistory.fromMap(map);

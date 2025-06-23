@@ -16,7 +16,7 @@ class HistoryService {
     await _historyDatabase.addHistory(history);
   }
 
-  Future<List<ExtendedHistory>> getAllHistories(int page, limit) async {
+  Future<List<ExtendedHistory>> getAllHistories(int page, int limit) async {
     return await _historyDatabase.getAllHistories(page, limit);
   }
 

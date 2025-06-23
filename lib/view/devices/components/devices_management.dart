@@ -34,7 +34,7 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   }
 
   Future<void> _fetchDevices() async {
-    final devices = await _deviceService.getAllDevices();
+    final devices = await _deviceService.getAllDevices(0, 100);
 
     setState(() {
       _devices = devices;

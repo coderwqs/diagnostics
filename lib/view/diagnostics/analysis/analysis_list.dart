@@ -1,5 +1,9 @@
 import 'dart:math';
 
+import 'package:diagnosis/model/device.dart';
+import 'package:diagnosis/model/history.dart';
+import 'package:diagnosis/service/devices.dart';
+import 'package:diagnosis/service/history.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -8,34 +12,114 @@ class DataAnalysisPage extends StatefulWidget {
   const DataAnalysisPage({super.key});
 
   @override
-  _DataAnalysisPageState createState() => _DataAnalysisPageState();
+  createState() => _DataAnalysisPageState();
 }
 
 class _DataAnalysisPageState extends State<DataAnalysisPage> {
-  String? selectedDevice;
-  List<String> devices = ['振动传感器#001', '温度传感器#002', '压力传感器#003', '电流传感器#004'];
-  List<DeviceData> deviceDataHistory = [];
+  final HistoryService _historyService = HistoryService();
+  final DeviceService _deviceService = DeviceService();
+
+  Device? selectedDevice;
+  List<Device> _devices = [];
+  List<DeviceData> _deviceHistoryData = [];
   List<DataPoint> currentWaveformData = [];
   List<DataPoint> currentSpectrumData = [];
-  bool isLoading = false;
-  DeviceData? selectedDataRecord;
+  DeviceData? _selectedHistoryData;
+
+  late ScrollController _scrollController;
+  bool _isLoading = false;
+  int _currentPage = 0;
+  final int _itemsPerPage = 5;
+
+  late ScrollController _historyScrollController;
+  bool _isHistoryLoading = false;
+  int _historyCurrentPage = 0;
+  final int _historyItemsPerPage = 10;
 
   @override
   void initState() {
     super.initState();
-    if (devices.isNotEmpty) {
-      selectedDevice = devices.first;
-      _fetchDeviceHistory(devices.first);
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+
+    _historyScrollController = ScrollController();
+    _historyScrollController.addListener(_historyScrollListener);
+
+    _loadMoreDevices();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _historyScrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent && !_isLoading) {
+      _loadMoreDevices();
     }
   }
 
-  Future<void> _fetchDeviceHistory(String device) async {
+  void _historyScrollListener() {
+    if (_historyScrollController.position.pixels ==
+        _historyScrollController.position.maxScrollExtent &&
+        !_isHistoryLoading) {
+      _loadMoreHistoryData(selectedDevice!);
+    }
+  }
+
+  Future<void> _loadMoreDevices() async {
+    if (_isLoading) return;
+
     setState(() {
-      isLoading = true;
-      deviceDataHistory = [];
+      _isLoading = true;
     });
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    final devices = await _deviceService.getAllDevices(_currentPage + 1, _itemsPerPage);
+
+    setState(() {
+      _devices.addAll(devices);
+      _currentPage++;
+      _isLoading = false;
+
+      if (_currentPage == 1 && _devices.isNotEmpty && selectedDevice == null) {
+        selectedDevice = _devices.first;
+        _loadMoreHistoryData(_devices.first);
+      }
+    });
+  }
+
+  Future<void> _refreshDevices() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final d = await _deviceService.getAllDevices(0, _itemsPerPage);
+
+    setState(() {
+      _devices = d;
+      _currentPage = 0;
+      _isLoading = false;
+    });
+  }
+
+  Future<List<ExtendedHistory>> fetchHistoryData({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    return _historyService.getAllHistories(page, limit);
+  }
+
+  Future<void> _loadMoreHistoryData(Device device) async {
+    if (_isHistoryLoading || selectedDevice == null) return;
+
+    setState(() {
+      _isHistoryLoading = true;
+    });
+
+    // 模拟API调用延迟
+    await Future.delayed(const Duration(seconds: 1));
 
     final random = RandomDataGenerator(device.hashCode);
     final now = DateTime.now();
@@ -49,18 +133,48 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     });
 
     setState(() {
-      deviceDataHistory = mockHistory;
-      selectedDataRecord = mockHistory.last;
-      isLoading = false;
+      _deviceHistoryData.addAll(mockHistory);
+      _historyCurrentPage++;
+      _isHistoryLoading = false;
+
+      if (_historyCurrentPage == 1 && _selectedHistoryData == null) {
+        _selectedHistoryData = _deviceHistoryData.first;
+        _fetchDataDetails(mockHistory.last, shouldRebuildHistory: false);
+      }
+    });
+  }
+
+  Future<void> _refreshHistoryData() async {
+    setState(() {
+      _isHistoryLoading = true;
     });
 
-    _fetchDataDetails(mockHistory.last, shouldRebuildHistory: false);
+    // 模拟刷新延迟
+    await Future.delayed(const Duration(seconds: 1));
+
+    final random = RandomDataGenerator(selectedDevice.hashCode);
+    final now = DateTime.now();
+    
+    // 这里替换为你的实际刷新逻辑
+    List<DeviceData> mockHistory = List.generate(20, (i) {
+      final recordTime = now.subtract(Duration(minutes: 20 - i));
+      return DeviceData(
+        timestamp: recordTime,
+        rmsValue: 2.0 + random.nextDouble() * 6.0,
+      );
+    });
+
+    setState(() {
+      _deviceHistoryData = mockHistory;
+      _historyCurrentPage = 0;
+      _isHistoryLoading = false;
+    });
   }
 
   Future<void> _fetchDataDetails(
-      DeviceData record, {
-        bool shouldRebuildHistory = true,
-      }) async {
+    DeviceData record, {
+    bool shouldRebuildHistory = true,
+  }) async {
     if (!shouldRebuildHistory) {
       setState(() {
         currentWaveformData = [];
@@ -68,7 +182,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
       });
     } else {
       setState(() {
-        isLoading = true;
+        _isLoading = true;
         currentWaveformData = [];
         currentSpectrumData = [];
       });
@@ -96,8 +210,8 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     });
 
     setState(() {
-      selectedDataRecord = record;
-      isLoading = false;
+      _selectedHistoryData = record;
+      _isLoading = false;
     });
   }
 
@@ -172,71 +286,82 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
           const Divider(height: 1, thickness: 1),
           SizedBox(
             height: 220,
-            child: ListView.separated(
-              padding: EdgeInsets.zero,
-              itemCount: devices.length,
-              separatorBuilder: (context, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final device = devices[index];
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        selectedDevice = device;
-                      });
-                      _fetchDeviceHistory(device);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      decoration: BoxDecoration(
-                        color: device == selectedDevice
-                            ? colorScheme.primary.withOpacity(0.08)
-                            : Colors.transparent,
-                        border: Border(
-                          left: BorderSide(
-                            color: device == selectedDevice
-                                ? colorScheme.primary
-                                : Colors.transparent,
-                            width: 4,
+            child: RefreshIndicator(
+              onRefresh: _refreshDevices,
+              child: ListView.separated(
+                controller: _scrollController,
+                padding: EdgeInsets.zero,
+                itemCount: _devices.length + (_isLoading ? 1 : 0),
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  if (index >= _devices.length) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  final device = _devices[index];
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        setState(() {
+                          selectedDevice = device;
+                        });
+                        _loadMoreHistoryData(selectedDevice!);
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: device == selectedDevice
+                              ? colorScheme.primary.withOpacity(0.08)
+                              : Colors.transparent,
+                          border: Border(
+                            left: BorderSide(
+                              color: device == selectedDevice
+                                  ? colorScheme.primary
+                                  : Colors.transparent,
+                              width: 4,
+                            ),
                           ),
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.sensors,
-                            color: device == selectedDevice
-                                ? colorScheme.primary
-                                : colorScheme.onSurface.withOpacity(0.6),
-                            size: 22,
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Text(
-                              device,
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: device == selectedDevice
-                                    ? colorScheme.onSurface
-                                    : colorScheme.onSurface.withOpacity(0.8),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.sensors,
+                              color: device == selectedDevice
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface.withOpacity(0.6),
+                              size: 22,
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Text(
+                                device.name,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: device == selectedDevice
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurface.withOpacity(0.8),
+                                ),
                               ),
                             ),
-                          ),
-                          if (device == selectedDevice)
-                            Icon(
-                              Icons.check_circle,
-                              color: colorScheme.primary,
-                              size: 18,
-                            ),
-                        ],
+                            if (device == selectedDevice)
+                              Icon(
+                                Icons.check_circle,
+                                color: colorScheme.primary,
+                                size: 18,
+                              ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -244,10 +369,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildDataHistorySection(
-      ColorScheme colorScheme,
-      TextTheme textTheme,
-      ) {
+  Widget _buildDataHistorySection(ColorScheme colorScheme, TextTheme textTheme) {
     return Card(
       margin: const EdgeInsets.all(12),
       elevation: 0,
@@ -307,74 +429,85 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
           ),
           const Divider(height: 1, thickness: 1),
           Expanded(
-            child: isLoading
-                ? Center(
-              child: CircularProgressIndicator(
-                color: colorScheme.primary,
-              ),
-            )
-                : ListView.separated(
-              padding: EdgeInsets.zero,
-              itemCount: deviceDataHistory.length,
-              separatorBuilder: (context, index) =>
-              const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final record = deviceDataHistory[index];
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      _fetchDataDetails(record);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: selectedDataRecord == record
-                            ? colorScheme.primary.withOpacity(0.08)
-                            : Colors.transparent,
-                        border: Border(
-                          left: BorderSide(
-                            color: selectedDataRecord == record
-                                ? colorScheme.primary
-                                : Colors.transparent,
-                            width: 4,
-                          ),
+            child: RefreshIndicator(
+              onRefresh: _refreshHistoryData,
+              child: _deviceHistoryData.isEmpty && !_isHistoryLoading
+                  ? Center(
+                child: Text(
+                  '暂无数据',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: colorScheme.onSurface.withOpacity(0.5),
+                  ),
+                ),
+              )
+                  : ListView.separated(
+                controller: _historyScrollController,
+                padding: EdgeInsets.zero,
+                itemCount: _deviceHistoryData.length + (_isHistoryLoading ? 1 : 0),
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  if (index >= _deviceHistoryData.length) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: colorScheme.primary,
                         ),
                       ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              DateFormat(
-                                'HH:mm:ss',
-                              ).format(record.timestamp),
-                              style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurface.withOpacity(
-                                  0.8,
+                    );
+                  }
+
+                  final record = _deviceHistoryData[index];
+                  return Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _fetchDataDetails(record),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedHistoryData == record
+                              ? colorScheme.primary.withOpacity(0.08)
+                              : Colors.transparent,
+                          border: Border(
+                            left: BorderSide(
+                              color: _selectedHistoryData == record
+                                  ? colorScheme.primary
+                                  : Colors.transparent,
+                              width: 4,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                DateFormat('HH:mm:ss').format(record.timestamp),
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurface.withOpacity(0.8),
                                 ),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              record.rmsValue.toStringAsFixed(2),
-                              textAlign: TextAlign.right,
-                              style: textTheme.bodyMedium?.copyWith(
-                                color: _getValueColor(record.rmsValue),
-                                fontWeight: FontWeight.bold,
+                            Expanded(
+                              child: Text(
+                                record.rmsValue.toStringAsFixed(2),
+                                textAlign: TextAlign.right,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: _getValueColor(record.rmsValue),
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -401,21 +534,21 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 textTheme: textTheme,
                 title: '时域波形',
                 icon: Icons.show_chart,
-                child: isLoading
+                child: _isLoading
                     ? Center(
-                  child: CircularProgressIndicator(
-                    color: colorScheme.primary,
-                  ),
-                )
+                        child: CircularProgressIndicator(
+                          color: colorScheme.primary,
+                        ),
+                      )
                     : currentWaveformData.isEmpty
                     ? Center(
-                  child: Text(
-                    '无波形数据',
-                    style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.5),
-                    ),
-                  ),
-                )
+                        child: Text(
+                          '无波形数据',
+                          style: TextStyle(
+                            color: colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                        ),
+                      )
                     : _buildWaveformChart(colorScheme),
               ),
             ),
@@ -430,21 +563,21 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 textTheme: textTheme,
                 title: '频域频谱',
                 icon: Icons.bar_chart,
-                child: isLoading
+                child: _isLoading
                     ? Center(
-                  child: CircularProgressIndicator(
-                    color: colorScheme.primary,
-                  ),
-                )
+                        child: CircularProgressIndicator(
+                          color: colorScheme.primary,
+                        ),
+                      )
                     : currentSpectrumData.isEmpty
                     ? Center(
-                  child: Text(
-                    '无频谱数据',
-                    style: TextStyle(
-                      color: colorScheme.onSurface.withOpacity(0.5),
-                    ),
-                  ),
-                )
+                        child: Text(
+                          '无频谱数据',
+                          style: TextStyle(
+                            color: colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                        ),
+                      )
                     : _buildSpectrumChart(colorScheme),
               ),
             ),
@@ -496,7 +629,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   Widget _buildDeviceInfoCard(ColorScheme colorScheme, TextTheme textTheme) {
-    if (selectedDevice == null || selectedDataRecord == null) {
+    if (selectedDevice == null || _selectedHistoryData == null) {
       return const SizedBox();
     }
 
@@ -525,7 +658,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    selectedDevice!,
+                    selectedDevice!.name,
                     style: textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface,
@@ -533,7 +666,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '最新记录: ${DateFormat('yyyy-MM-dd HH:mm').format(selectedDataRecord!.timestamp)}',
+                    '最新记录: ${DateFormat('yyyy-MM-dd HH:mm').format(_selectedHistoryData!.timestamp)}',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.onSurface.withOpacity(0.6),
                     ),
@@ -545,10 +678,10 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${selectedDataRecord!.rmsValue.toStringAsFixed(2)}',
+                  _selectedHistoryData!.rmsValue.toStringAsFixed(2),
                   style: textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: _getValueColor(selectedDataRecord!.rmsValue),
+                    color: _getValueColor(_selectedHistoryData!.rmsValue),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -558,13 +691,13 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(selectedDataRecord!.rmsValue),
+                    color: _getStatusColor(_selectedHistoryData!.rmsValue),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    _getStatusLabel(selectedDataRecord!.rmsValue),
+                    _getStatusLabel(_selectedHistoryData!.rmsValue),
                     style: textTheme.labelSmall?.copyWith(
-                      color: _getStatusTextColor(selectedDataRecord!.rmsValue),
+                      color: _getStatusTextColor(_selectedHistoryData!.rmsValue),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -675,9 +808,9 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         maxX: currentWaveformData.length.toDouble() - 1,
         minY: 0,
         maxY:
-        currentWaveformData
-            .map((e) => e.value)
-            .reduce((a, b) => a > b ? a : b) *
+            currentWaveformData
+                .map((e) => e.value)
+                .reduce((a, b) => a > b ? a : b) *
             1.3,
         lineBarsData: [
           LineChartBarData(
@@ -741,7 +874,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         currentWaveformData
             .map((e) => e.value)
             .reduce((a, b) => a > b ? a : b) *
-            1.3;
+        1.3;
     return (maxValue / 4).roundToDouble();
   }
 

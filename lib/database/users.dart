@@ -4,19 +4,6 @@ import 'package:diagnosis/model/user.dart';
 class UserDatabase {
   final DatabaseUtils _dbUtils = DatabaseUtils();
 
-  Future<void> initializeDatabase() async {
-    String schema = '''
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
-        createdAt INTEGER NOT NULL
-      )
-    ''';
-    await _dbUtils.createTable(schema);
-  }
-
   Future<void> addUser(User user) async {
     String sql =
         '''
@@ -28,7 +15,7 @@ class UserDatabase {
 
   Future<List<User>> getAllUsers() async {
     String sql = 'SELECT * FROM users';
-    final List<Map<String, dynamic>> maps = await _dbUtils.retrieveAll(sql);
+    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql);
     return List.generate(maps.length, (i) {
       return User.fromJson(maps[i]);
     });

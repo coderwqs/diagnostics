@@ -1,25 +1,11 @@
 import 'dart:io';
-import 'package:diagnosis/database/history.dart';
-import 'package:diagnosis/view/devices/history/history.dart';
 import 'package:provider/provider.dart';
 import 'package:diagnosis/config/routes.dart';
-import 'package:diagnosis/database/devices.dart';
-import 'package:diagnosis/database/users.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-Future<void> initializeDB() async {
-  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
-    databaseFactory = databaseFactoryFfi;
-  }
-
-  await DeviceDatabase().initializeDatabase();
-  await UserDatabase().initializeDatabase();
-  await HistoryDatabase().initializeDatabase();
-}
 
 class LanguageProvider with ChangeNotifier {
   Locale _locale;
@@ -42,7 +28,9 @@ class LanguageProvider with ChangeNotifier {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await initializeDB();
+  if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+    databaseFactory = databaseFactoryFfi;
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final savedLanguage = prefs.getString('language') ?? 'zh';

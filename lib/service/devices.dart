@@ -21,8 +21,8 @@ class DeviceService {
     await _deviceDatabase.addDevice(device);
   }
 
-  Future<List<Device>> getAllDevices() async {
-    return await _deviceDatabase.getAllDevices();
+  Future<List<Device>> getAllDevices(int page, int limit) async {
+    return await _deviceDatabase.getAllDevices(page, limit);
   }
 
   Future<void> updateDevice(Device device) async {
