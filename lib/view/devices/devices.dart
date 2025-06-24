@@ -70,22 +70,14 @@ class DevicesPage extends StatelessWidget {
               const SizedBox(height: 12),
               _buildFeatureCard(
                 context,
-                icon: Icons.file_download,
-                title: "数据导出",
-                subtitle: "导出数据至CSV",
+                icon: Icons.import_export,
+                title: "数据导入",
+                subtitle: "导入CSV数据",
                 color: Colors.blue.shade100,
                 iconColor: Colors.orange,
-                onTap: () {},
-              ),
-              const SizedBox(height: 12),
-              _buildFeatureCard(
-                context,
-                icon: Icons.cloud_upload,
-                title: "数据上传",
-                subtitle: "上传数据至服务器",
-                color: Colors.blue.shade100,
-                iconColor: Colors.purple,
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).pushNamed('/device/history/import');
+                },
               ),
               const SizedBox(height: 12),
               _buildFeatureCard(

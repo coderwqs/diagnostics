@@ -296,7 +296,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
             context,
             MaterialPageRoute(
               builder: (context) =>
-                  DetailPage(id: item.id, deviceId: item.deviceId),
+                  DetailPage(id: item.id!, deviceId: item.deviceId),
             ),
           );
         },

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 class History {
-  int id;
+  int? id;
   String deviceId;
   int dataTime;
   double samplingRate;
@@ -10,7 +10,7 @@ class History {
   int createdAt;
 
   History({
-    required this.id,
+    this.id,
     required this.deviceId,
     required this.dataTime,
     required this.samplingRate,
