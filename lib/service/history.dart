@@ -9,10 +9,6 @@ class HistoryService {
       history.createdAt = DateTime.now().millisecondsSinceEpoch;
     }
 
-    if (history.createdAt == 0) {
-      history.createdAt = DateTime.now().millisecondsSinceEpoch;
-    }
-
     await _historyDatabase.addHistory(history);
   }
 

@@ -1,3 +1,7 @@
+import 'package:diagnosis/model/features.dart';
+import 'package:diagnosis/model/history.dart';
+import 'package:diagnosis/service/features.dart';
+import 'package:diagnosis/service/history.dart';
 import 'package:diagnosis/utils/file_parser/parser.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -10,8 +14,10 @@ class DataImportScreen extends StatefulWidget {
 }
 
 class _DataImportScreenState extends State<DataImportScreen> {
+  final HistoryService _historyService = HistoryService();
+  final FeaturesService _featuresService = FeaturesService();
+
   List<PlatformFile> _selectedFiles = [];
-  List<ImportedHistoryData> _importResults = [];
   bool _isImporting = false;
   double _progress = 0.0;
 
@@ -360,10 +366,8 @@ class _DataImportScreenState extends State<DataImportScreen> {
     setState(() {
       _isImporting = true;
       _progress = 0.0;
-      _importResults.clear();
     });
 
-    final results = <ImportedHistoryData>[];
     final allErrors = <DataError>[];
     int totalSuccess = 0;
 
@@ -387,7 +391,9 @@ class _DataImportScreenState extends State<DataImportScreen> {
             },
           );
 
-          results.add(result);
+          // 写入数据库 result.record
+          persistImportData(result.records);
+
           totalSuccess += result.successCount;
           allErrors.addAll(result.errors);
         } catch (e) {
@@ -409,8 +415,18 @@ class _DataImportScreenState extends State<DataImportScreen> {
 
     setState(() {
       _isImporting = false;
-      _importResults = results;
     });
+  }
+
+  void persistImportData(List<History> records) {
+    for(var h in records){
+      _historyService.addHistory(h);
+      
+      Feature feature = Feature.calculateFeatures(waveform: h.data);
+      feature.dataTime = h.dataTime;
+      feature.deviceId = h.deviceId;
+      _featuresService.addFeature(feature);
+    }
   }
 
   void _showImportResult({

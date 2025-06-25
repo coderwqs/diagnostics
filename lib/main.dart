@@ -1,9 +1,11 @@
 import 'dart:io';
+import 'package:diagnosis/utils/database.dart';
 import 'package:provider/provider.dart';
 import 'package:diagnosis/config/routes.dart';
 import 'package:flutter/material.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'config/db_tables.dart';
 import 'l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -30,6 +32,7 @@ void main() async {
 
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     databaseFactory = databaseFactoryFfi;
+    DatabaseUtils().init(TABLES_SCHEMA, 9);
   }
 
   final prefs = await SharedPreferences.getInstance();

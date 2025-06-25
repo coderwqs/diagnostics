@@ -5,118 +5,81 @@ class DatabaseUtils {
   static final DatabaseUtils _instance = DatabaseUtils._internal();
   static Database? _database;
 
+  // Private constructor
   DatabaseUtils._internal();
 
   factory DatabaseUtils() => _instance;
 
-  Future<Database> get database async {
-    _database ??= await _initDatabase();
+  /// Initialize the database
+  Future<void> init(List<String> tables, int version) async {
+    if (_database != null) return;
+
+    final path = join(await getDatabasesPath(), 'app.db');
+    try {
+      _database = await openDatabase(
+        path,
+        version: version,
+        onCreate: (db, version) async {
+          await _createTables(db, tables);
+        },
+        onConfigure: _onConfigure,
+        onUpgrade: _onUpgrade,
+      );
+    } catch (e) {
+      print('Database initialization error: $e');
+    }
+  }
+
+  /// Get the initialized database instance
+  Database get database {
+    if (_database == null) {
+      throw Exception('Database not initialized. Call init() first.');
+    }
     return _database!;
   }
 
-  Future<Database> _initDatabase() async {
-    final path = join(await getDatabasesPath(), 'app.db');
-    return openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        // 启用外键支持
-        await db.execute('PRAGMA foreign_keys = ON');
-        // 创建用户表
-        await db.execute(
-          '''
-          CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            createdAt INTEGER NOT NULL
-          )
-          '''
-        );
-        // 创建设备表
-        await db.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS devices (
-              id TEXT PRIMARY KEY,
-              name TEXT NOT NULL,
-              type TEXT NOT NULL,
-              identity TEXT NOT NULL UNIQUE,
-              secret TEXT NOT NULL,
-              status TEXT CHECK (status IN ('online', 'offline', 'warning')) DEFAULT 'offline',
-              lastActive INTEGER NOT NULL,
-              createdAt INTEGER NOT NULL,
-              image BLOB NOT NULL
-            )
-            '''
-        );
-        // 创建历史记录表（需先于features表创建）
-        await db.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS history (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              deviceId TEXT NOT NULL,
-              dataTime INTEGER NOT NULL,
-              samplingRate REAL NOT NULL,
-              rotationSpeed INTEGER,
-              data BLOB NOT NULL,
-              createdAt INTEGER NOT NULL,
-              FOREIGN KEY (deviceId) REFERENCES devices(id)
-            )
-            '''
-        );
-        // 创建数据特征表
-        await db.execute(
-            '''
-            CREATE TABLE IF NOT EXISTS features (
-              id INTEGER PRIMARY KEY AUTOINCREMENT,
-              historyId INTEGER NOT NULL,
-              deviceId TEXT NOT NULL,
-              rms REAL,
-              vpp REAL,
-              max REAL,
-              min REAL,
-              mean REAL,
-              arv REAL,
-              peak REAL,
-              variance REAL,
-              stdDev REAL,
-              msa REAL,
-              crestFactor REAL,
-              kurtosis REAL,
-              formFactor REAL,
-              skewness REAL,
-              pulseFactor REAL,
-              clearanceFactor REAL,
-              FOREIGN KEY (historyId) REFERENCES history(id) ON DELETE CASCADE
-            );
-            CREATE INDEX IF NOT EXISTS idx_features_device ON features(deviceId);
-            CREATE INDEX IF NOT EXISTS idx_features_history ON features(historyId);
-            '''
-        );
-      },
-      onConfigure: (db) async {
-        await db.execute('PRAGMA foreign_keys = ON');
-      },
-    );
+  // Database configuration callback
+  Future<void> _onConfigure(Database db) async {
+    await db.execute('PRAGMA foreign_keys = ON');
   }
 
+  // Database upgrade callback
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE devices ADD COLUMN description TEXT');
+    }
+  }
+
+  // Create all tables dynamically
+  Future<void> _createTables(Database db, List<String> tables) async {
+    for (final tableDef in tables) {
+      await db.execute(tableDef);
+    }
+  }
+
+  // --- Database operation methods ---
+
   Future<void> execute(String sql, [List<dynamic>? args]) async {
-    final db = await database;
-    await db.execute(sql, args);
+    await database.execute(sql, args);
   }
 
   Future<int> insert(String sql, [List<dynamic>? args]) async {
-    final db = await database;
-    return await db.rawInsert(sql, args ?? []);
+    return await database.rawInsert(sql, args ?? []);
+  }
+
+  Future<void> batchInsert(String sql, List<List<dynamic>> argsList) async {
+    final batch = database.batch();
+    for (final args in argsList) {
+      batch.rawInsert(sql, args);
+    }
+    await batch.commit(noResult: true);
   }
 
   Future<Map<String, dynamic>?> querySingle(
     String sql, [
     List<dynamic>? args,
   ]) async {
-    final db = await database;
-    final result = await db.rawQuery(sql, args ?? []);
+    final result = await database.rawQuery(sql, args ?? []);
     return result.isNotEmpty ? result.first : null;
   }
 
@@ -124,28 +87,19 @@ class DatabaseUtils {
     String sql, [
     List<dynamic>? args,
   ]) async {
-    final db = await database;
-    return await db.rawQuery(sql, args ?? []);
+    return await database.rawQuery(sql, args ?? []);
   }
 
   Future<int> update(String sql, [List<dynamic>? args]) async {
-    final db = await database;
-    return await db.rawUpdate(sql, args ?? []);
+    return await database.rawUpdate(sql, args ?? []);
   }
 
   Future<int> delete(String sql, [List<dynamic>? args]) async {
-    final db = await database;
-    return await db.rawDelete(sql, args ?? []);
-  }
-
-  Future<T> transaction<T>(Future<T> Function(Transaction txn) action) async {
-    final db = await database;
-    return await db.transaction(action);
+    return await database.rawDelete(sql, args ?? []);
   }
 
   Future<void> close() async {
-    final db = await database;
-    await db.close();
+    await database.close();
     _database = null;
   }
 }

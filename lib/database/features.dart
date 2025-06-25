@@ -1,21 +1,24 @@
 import 'package:diagnosis/model/features.dart';
 import 'package:diagnosis/utils/database.dart';
 
+/// 特征数据数据库操作类
 class FeaturesDatabase {
+  static const String _tableName = 'features';
   final DatabaseUtils _dbUtils = DatabaseUtils();
 
+  /// 插入特征数据
   Future<int> insertFeature(Feature feature) async {
-    final sql = '''
-      INSERT INTO features (
-        historyId, deviceId, rms, vpp, max, min, mean, arv, peak,
+    const sql = '''
+      INSERT INTO $_tableName (
+        deviceId, dataTime, rms, vpp, max, min, mean, arv, peak,
         variance, stdDev, msa, crestFactor, kurtosis, formFactor,
-        skewness, pulseFactor, clearanceFactor
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        skewness, pulseFactor, clearanceFactor, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''';
 
-    final params = [
-      feature.historyId,
+    return await _dbUtils.insert(sql, [
       feature.deviceId,
+      feature.dataTime,
       feature.rms,
       feature.vpp,
       feature.max,
@@ -32,26 +35,68 @@ class FeaturesDatabase {
       feature.skewness,
       feature.pulseFactor,
       feature.clearanceFactor,
-    ];
-
-    return await _dbUtils.insert(sql, params);
+      feature.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+    ]);
   }
 
+  /// 批量插入特征数据
+  Future<void> batchInsertFeatures(List<Feature> features) async {
+    const sql = '''
+      INSERT INTO $_tableName (
+        deviceId, dataTime, rms, vpp, max, min, mean, arv, peak,
+        variance, stdDev, msa, crestFactor, kurtosis, formFactor,
+        skewness, pulseFactor, clearanceFactor, createdAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''';
+
+    await _dbUtils.batchInsert(sql, features.map((feature) => [
+      feature.deviceId,
+      feature.dataTime,
+      feature.rms,
+      feature.vpp,
+      feature.max,
+      feature.min,
+      feature.mean,
+      feature.arv,
+      feature.peak,
+      feature.variance,
+      feature.stdDev,
+      feature.msa,
+      feature.crestFactor,
+      feature.kurtosis,
+      feature.formFactor,
+      feature.skewness,
+      feature.pulseFactor,
+      feature.clearanceFactor,
+      feature.createdAt ?? DateTime.now().millisecondsSinceEpoch,
+    ]).toList());
+  }
+
+  /// 根据historyId获取特征数据
   Future<List<Feature>> getFeaturesByHistoryId(int historyId) async {
-    final sql = 'SELECT * FROM features WHERE historyId = ?';
+    final sql = 'SELECT * FROM $_tableName WHERE historyId = ? ORDER BY dataTime DESC';
     final maps = await _dbUtils.query(sql, [historyId]);
     return maps.map(Feature.fromMap).toList();
   }
 
-  Future<List<Feature>> getFeaturesByDevice(String deviceId) async {
-    final sql = 'SELECT * FROM features WHERE deviceId = ?';
-    final maps = await _dbUtils.query(sql, [deviceId]);
+  /// 根据设备ID获取特征数据
+  Future<List<Feature>> getFeaturesByDevice(String deviceId, {int? limit}) async {
+    final params = <dynamic>[deviceId];
+    var sql = 'SELECT * FROM $_tableName WHERE deviceId = ? ORDER BY dataTime DESC';
+
+    if (limit != null) {
+      sql += ' LIMIT ?';
+      params.add(limit);
+    }
+
+    final maps = await _dbUtils.query(sql, params);
     return maps.map(Feature.fromMap).toList();
   }
 
+  /// 更新特征数据
   Future<int> updateFeature(Feature feature) async {
-    final sql = '''
-      UPDATE features SET
+    const sql = '''
+      UPDATE $_tableName SET
         rms = ?, vpp = ?, max = ?, min = ?, mean = ?,
         arv = ?, peak = ?, variance = ?, stdDev = ?,
         msa = ?, crestFactor = ?, kurtosis = ?, formFactor = ?,
@@ -59,7 +104,7 @@ class FeaturesDatabase {
       WHERE id = ?
     ''';
 
-    final params = [
+    return await _dbUtils.update(sql, [
       feature.rms,
       feature.vpp,
       feature.max,
@@ -77,50 +122,78 @@ class FeaturesDatabase {
       feature.pulseFactor,
       feature.clearanceFactor,
       feature.id,
-    ];
-
-    return await _dbUtils.update(sql, params);
+    ]);
   }
 
+  /// 删除特征数据
   Future<int> deleteFeature(int id) async {
-    final sql = 'DELETE FROM features WHERE id = ?';
+    final sql = 'DELETE FROM $_tableName WHERE id = ?';
     return await _dbUtils.delete(sql, [id]);
   }
 
-  Future<List<FeatureWithHistory>> getFeaturesWithHistory(
-    int page,
-    int limit,
-  ) async {
+  /// 根据historyId删除特征数据
+  Future<int> deleteFeaturesByHistoryId(int historyId) async {
+    final sql = 'DELETE FROM $_tableName WHERE historyId = ?';
+    return await _dbUtils.delete(sql, [historyId]);
+  }
+
+  /// 获取带历史记录的特征数据（分页）
+  Future<List<FeatureWithHistory>> getFeaturesWithHistory({
+    required int page,
+    required int limit,
+    String? deviceId,
+    DateTime? startTime,
+    DateTime? endTime,
+  }) async {
     final offset = (page - 1) * limit;
+    final whereClauses = <String>[];
+    final params = <dynamic>[];
+
+    if (deviceId != null) {
+      whereClauses.add('f.deviceId = ?');
+      params.add(deviceId);
+    }
+
+    if (startTime != null) {
+      whereClauses.add('f.dataTime >= ?');
+      params.add(startTime.millisecondsSinceEpoch);
+    }
+
+    if (endTime != null) {
+      whereClauses.add('f.dataTime <= ?');
+      params.add(endTime.millisecondsSinceEpoch);
+    }
+
+    final where = whereClauses.isNotEmpty ? 'WHERE ${whereClauses.join(' AND ')}' : '';
+
     final sql = '''
-      SELECT f.*, h.dataTime, h.samplingRate, h.rotationSpeed
-      FROM features f
+      SELECT f.*, h.samplingRate, h.rotationSpeed
+      FROM $_tableName f
       JOIN history h ON f.historyId = h.id
+      $where
+      ORDER BY f.dataTime DESC
       LIMIT ? OFFSET ?
     ''';
 
-    final maps = await _dbUtils.query(sql, [limit, offset]);
+    params.addAll([limit, offset]);
+
+    final maps = await _dbUtils.query(sql, params);
     return maps.map((map) {
       return FeatureWithHistory(
         feature: Feature.fromMap(map),
-        dataTime: DateTime.parse(map['dataTime']),
         samplingRate: map['samplingRate'] as int,
-        rotationSpeed: map['rotationSpeed'] as double,
+        rotationSpeed: (map['rotationSpeed'] as num).toDouble(),
       );
     }).toList();
   }
-}
 
-class FeatureWithHistory {
-  final Feature feature;
-  final DateTime dataTime;
-  final int samplingRate;
-  final double rotationSpeed;
+  /// 获取特征数据数量
+  Future<int> getFeatureCount({String? deviceId}) async {
+    final where = deviceId != null ? 'WHERE deviceId = ?' : '';
+    final sql = 'SELECT COUNT(*) as count FROM $_tableName $where';
+    final params = deviceId != null ? [deviceId] : [];
 
-  FeatureWithHistory({
-    required this.feature,
-    required this.dataTime,
-    required this.samplingRate,
-    required this.rotationSpeed,
-  });
+    final result = await _dbUtils.query(sql, params);
+    return result.first['count'] as int;
+  }
 }

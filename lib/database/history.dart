@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:diagnosis/model/history.dart';
 import 'package:diagnosis/utils/database.dart';
 
@@ -6,23 +8,30 @@ class HistoryDatabase {
 
   Future<void> addHistory(History history) async {
     String sql =
-        '''
+    '''
       INSERT INTO history (deviceId, dataTime, samplingRate, rotationSpeed, data, createdAt)
-      VALUES (${history.deviceId}, ${history.dataTime}, ${history.samplingRate}, ${history.rotationSpeed}, ${history.data}, ${history.createdAt})
+      VALUES (?, ?, ?, ?, ?, ?)
     ''';
-    await _dbUtils.insert(sql);
+    await _dbUtils.insert(sql, [
+      history.deviceId,
+      history.dataTime,
+      history.samplingRate,
+      history.rotationSpeed,
+      jsonEncode(history.data),
+      history.createdAt,
+    ]);
   }
 
   Future<List<ExtendedHistory>> getAllHistories(int page, int limit) async {
     int offset = (page - 1) * limit;
 
     String sql =
-        '''
+    '''
       SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, 
       h.createdAt, d.name AS deviceName FROM history h 
-      LEFT JOIN devices d ON d.id = h.deviceId LIMIT $limit OFFSET $offset
+      LEFT JOIN devices d ON d.id = h.deviceId LIMIT ? OFFSET ?
     ''';
-    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql);
+    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql, [limit, offset]);
 
     return List.generate(maps.length, (i) {
       return ExtendedHistory.fromMap(maps[i]);
@@ -30,18 +39,18 @@ class HistoryDatabase {
   }
 
   Future<ExtendedHistory?> getHistoryByDeviceId(
-    int historyId,
-    String deviceId,
-  ) async {
+      int historyId,
+      String deviceId,
+      ) async {
     String sql =
-        '''
+    '''
     SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, h.data, 
     h.createdAt, d.name AS deviceName FROM history h 
     LEFT JOIN devices d ON d.id = h.deviceId 
-    WHERE h.deviceId = '$deviceId' AND h.id = $historyId;
+    WHERE h.deviceId = ? AND h.id = ?
   ''';
 
-    final Map<String, dynamic>? map = await _dbUtils.querySingle(sql);
+    final Map<String, dynamic>? map = await _dbUtils.querySingle(sql, [deviceId, historyId]);
 
     if (map != null) {
       return ExtendedHistory.fromMap(map);
@@ -52,16 +61,23 @@ class HistoryDatabase {
 
   Future<void> updateHistory(History history) async {
     String sql =
-        '''
+    '''
       UPDATE history 
-      SET dataTime = ${history.dataTime}, samplingRate = ${history.samplingRate}, rotationSpeed = ${history.rotationSpeed}, data = ${history.data}, createdAt = ${history.createdAt}
-      WHERE id = ${history.id}
+      SET dataTime = ?, samplingRate = ?, rotationSpeed = ?, data = ?, createdAt = ?
+      WHERE id = ?
     ''';
-    await _dbUtils.update(sql);
+    await _dbUtils.update(sql, [
+      history.dataTime,
+      history.samplingRate,
+      history.rotationSpeed,
+      history.data,
+      history.createdAt,
+      history.id,
+    ]);
   }
 
   Future<void> deleteHistory(int id) async {
-    String sql = 'DELETE FROM history WHERE id = $id';
-    await _dbUtils.delete(sql);
+    String sql = 'DELETE FROM history WHERE id = ?';
+    await _dbUtils.delete(sql, [id]);
   }
 }
