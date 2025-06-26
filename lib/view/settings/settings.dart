@@ -285,7 +285,7 @@ class _SystemSettingsStatePage extends State<SystemSettingsPage> {
                 l10n.settings_about_tips,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurface.withOpacity(0.8),
+                  color: colorScheme.onSurface.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 24),

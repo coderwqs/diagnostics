@@ -7,7 +7,7 @@ class FeaturesService {
   /// 添加特征数据（自动处理时间戳）
   Future<int> addFeature(Feature feature) async {
     try {
-      if(feature.createdAt == 0){
+      if (feature.createdAt == 0) {
         feature.createdAt = DateTime.now().millisecondsSinceEpoch;
       }
 
@@ -21,27 +21,31 @@ class FeaturesService {
   Future<void> addFeatures(List<Feature> features) async {
     try {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final featuresToSave = features.map((f) => Feature(
-        deviceId: f.deviceId,
-        dataTime: f.dataTime ?? timestamp,
-        rms: f.rms,
-        vpp: f.vpp,
-        max: f.max,
-        min: f.min,
-        mean: f.mean,
-        arv: f.arv,
-        peak: f.peak,
-        variance: f.variance,
-        stdDev: f.stdDev,
-        msa: f.msa,
-        crestFactor: f.crestFactor,
-        kurtosis: f.kurtosis,
-        formFactor: f.formFactor,
-        skewness: f.skewness,
-        pulseFactor: f.pulseFactor,
-        clearanceFactor: f.clearanceFactor,
-        createdAt: f.createdAt ?? timestamp,
-      )).toList();
+      final featuresToSave = features
+          .map(
+            (f) => Feature(
+              deviceId: f.deviceId,
+              dataTime: f.dataTime ?? timestamp,
+              rms: f.rms,
+              vpp: f.vpp,
+              max: f.max,
+              min: f.min,
+              mean: f.mean,
+              arv: f.arv,
+              peak: f.peak,
+              variance: f.variance,
+              stdDev: f.stdDev,
+              msa: f.msa,
+              crestFactor: f.crestFactor,
+              kurtosis: f.kurtosis,
+              formFactor: f.formFactor,
+              skewness: f.skewness,
+              pulseFactor: f.pulseFactor,
+              clearanceFactor: f.clearanceFactor,
+              createdAt: f.createdAt ?? timestamp,
+            ),
+          )
+          .toList();
 
       await _featuresDatabase.batchInsertFeatures(featuresToSave);
     } catch (e) {
@@ -50,7 +54,7 @@ class FeaturesService {
   }
 
   /// 获取所有历史记录（分页）
-  Future<List<FeatureWithHistory>> getAllHistories({
+  Future<List<FeatureWithHistory>> getAllFeaturesWithHistory({
     required int page,
     required int limit,
     String? deviceId,
@@ -59,6 +63,26 @@ class FeaturesService {
   }) async {
     try {
       return await _featuresDatabase.getFeaturesWithHistory(
+        page: page,
+        limit: limit,
+        deviceId: deviceId,
+        startTime: startTime,
+        endTime: endTime,
+      );
+    } catch (e) {
+      throw Exception('Failed to get histories: ${e.toString()}');
+    }
+  }
+
+  Future<List<Feature>> getAllFeatures({
+    required int page,
+    required int limit,
+    String? deviceId,
+    int? startTime,
+    int? endTime,
+  }) async {
+    try {
+      return await _featuresDatabase.getFeatures(
         page: page,
         limit: limit,
         deviceId: deviceId,

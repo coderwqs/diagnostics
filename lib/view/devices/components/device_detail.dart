@@ -39,7 +39,7 @@ class DeviceDetailSheet extends StatelessWidget {
                   height: 4,
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: colorScheme.onSurface.withOpacity(0.1),
+                    color: colorScheme.onSurface.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -95,7 +95,7 @@ class DeviceDetailSheet extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: _getStatusColor(
                               device.status,
-                            ).withOpacity(0.1),
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -194,7 +194,7 @@ class DeviceDetailSheet extends StatelessWidget {
       child: Icon(
         Icons.device_unknown,
         size: 40,
-        color: colorScheme.onSurface.withOpacity(0.3),
+        color: colorScheme.onSurface.withValues(alpha: 0.3),
       ),
     );
   }
@@ -213,7 +213,7 @@ class DeviceDetailSheet extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -226,7 +226,7 @@ class DeviceDetailSheet extends StatelessWidget {
                     fontSize: 12,
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
                 const SizedBox(height: 2),

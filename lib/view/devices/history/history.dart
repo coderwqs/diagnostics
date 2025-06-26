@@ -166,7 +166,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
         color: theme.cardColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -236,7 +236,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
             _filterValue = selected ? value : 'all';
           });
         },
-        selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
+        selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
         checkmarkColor: Theme.of(context).primaryColor,
         labelStyle: TextStyle(
           color: _filterValue == value
@@ -276,7 +276,6 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
   ) {
     final theme = Theme.of(context);
     final isOverload = item.rotationSpeed != null && item.rotationSpeed! > 1000;
-    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
     final timeAgo = _timeAgo(
       l10n,
       DateTime.fromMillisecondsSinceEpoch(item.createdAt),
@@ -287,7 +286,7 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 1),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -381,8 +380,8 @@ class _HistoryDataPageState extends State<HistoryDataPage> {
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: isOverload
-            ? Colors.red.withOpacity(0.1)
-            : Colors.green.withOpacity(0.1),
+            ? Colors.red.withValues(alpha: 0.1)
+            : Colors.green.withValues(alpha: 0.1),
         shape: BoxShape.circle,
       ),
       child: Icon(

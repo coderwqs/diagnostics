@@ -473,7 +473,7 @@ class DeviceCard extends StatelessWidget {
       ],
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 1),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
       ),
     );
 

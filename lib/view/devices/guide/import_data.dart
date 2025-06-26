@@ -42,7 +42,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 10,
                     spreadRadius: 2,
                     offset: Offset(0, 4),
@@ -64,7 +64,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(
                             context,
-                          ).primaryColor.withOpacity(0.1),
+                          ).primaryColor.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -96,7 +96,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
                           decoration: BoxDecoration(
                             color: Theme.of(
                               context,
-                            ).primaryColor.withOpacity(0.1),
+                            ).primaryColor.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
@@ -137,7 +137,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: 0.05),
                               blurRadius: 6,
                               offset: Offset(0, 2),
                             ),
@@ -151,7 +151,7 @@ class _DataImportScreenState extends State<DataImportScreen> {
                               decoration: BoxDecoration(
                                 color: _getFileIconColor(
                                   file.extension,
-                                ).withOpacity(0.1),
+                                ).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(

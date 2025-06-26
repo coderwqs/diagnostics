@@ -18,7 +18,7 @@ class DetailPage extends StatefulWidget {
   const DetailPage({super.key, required this.id, required this.deviceId});
 
   @override
-  _DetailPageState createState() => _DetailPageState();
+  createState() => _DetailPageState();
 }
 
 class _DetailPageState extends State<DetailPage> {
@@ -46,7 +46,7 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Future<ExtendedHistory?> fetchHistoryDataById() async {
-    return await _historyService.getHistory(widget.id, widget.deviceId);
+    return await _historyService.viewHistory(widget.id);
   }
 
   @override
@@ -173,7 +173,7 @@ class _DetailPageState extends State<DetailPage> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 1),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -215,7 +215,7 @@ class _DetailPageState extends State<DetailPage> {
                   onPressed: () => _exportData(context),
                   tooltip: l10n.app_export_data,
                   style: IconButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -396,8 +396,8 @@ class _DetailPageState extends State<DetailPage> {
       padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: isOverload
-            ? Colors.red.withOpacity(0.1)
-            : Colors.green.withOpacity(0.1),
+            ? Colors.red.withValues(alpha: 0.1)
+            : Colors.green.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isOverload ? Colors.red : Colors.green,
@@ -440,9 +440,9 @@ class _DetailPageState extends State<DetailPage> {
       width: 160,
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -526,7 +526,7 @@ class _DetailPageState extends State<DetailPage> {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 8,
                 offset: Offset(0, 4),
               ),
@@ -545,7 +545,7 @@ class _DetailPageState extends State<DetailPage> {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -576,7 +576,7 @@ class _DetailPageState extends State<DetailPage> {
         maximum: data.reduce((a, b) => a > b ? a : b) * 1.05,
         interval: _calculateChartInterval(data.length),
         majorGridLines: MajorGridLines(
-          color: Colors.grey.withOpacity(0.2),
+          color: Colors.grey.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -617,7 +617,7 @@ class _DetailPageState extends State<DetailPage> {
         maximum: data.reduce((a, b) => a > b ? a : b) * 1.2,
         interval: _calculateChartInterval(data.length),
         majorGridLines: MajorGridLines(
-          color: Colors.grey.withOpacity(0.2),
+          color: Colors.grey.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -654,7 +654,7 @@ class _DetailPageState extends State<DetailPage> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: theme.dividerColor.withOpacity(0.2), width: 1),
+        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
       ),
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -724,12 +724,12 @@ class _DetailPageState extends State<DetailPage> {
       height: 80,
       padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.15), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.15), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.05),
+            color: color.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -743,7 +743,7 @@ class _DetailPageState extends State<DetailPage> {
           Container(
             padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, size: 18, color: color),

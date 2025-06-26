@@ -7,8 +7,7 @@ class HistoryDatabase {
   final DatabaseUtils _dbUtils = DatabaseUtils();
 
   Future<void> addHistory(History history) async {
-    String sql =
-    '''
+    String sql = '''
       INSERT INTO history (deviceId, dataTime, samplingRate, rotationSpeed, data, createdAt)
       VALUES (?, ?, ?, ?, ?, ?)
     ''';
@@ -25,32 +24,52 @@ class HistoryDatabase {
   Future<List<ExtendedHistory>> getAllHistories(int page, int limit) async {
     int offset = (page - 1) * limit;
 
-    String sql =
-    '''
+    String sql = '''
       SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, 
       h.createdAt, d.name AS deviceName FROM history h 
       LEFT JOIN devices d ON d.id = h.deviceId LIMIT ? OFFSET ?
     ''';
-    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql, [limit, offset]);
+    final List<Map<String, dynamic>> maps = await _dbUtils.query(sql, [
+      limit,
+      offset,
+    ]);
 
     return List.generate(maps.length, (i) {
       return ExtendedHistory.fromMap(maps[i]);
     });
   }
 
-  Future<ExtendedHistory?> getHistoryByDeviceId(
-      int historyId,
-      String deviceId,
-      ) async {
-    String sql =
-    '''
+  Future<ExtendedHistory?> viewHistoryById(int historyId) async {
+    String sql = '''
     SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, h.data, 
     h.createdAt, d.name AS deviceName FROM history h 
     LEFT JOIN devices d ON d.id = h.deviceId 
-    WHERE h.deviceId = ? AND h.id = ?
+    WHERE h.deviceId = d.id AND h.id = ?
   ''';
 
-    final Map<String, dynamic>? map = await _dbUtils.querySingle(sql, [deviceId, historyId]);
+    final Map<String, dynamic>? map = await _dbUtils.querySingle(sql, [
+      historyId,
+    ]);
+
+    if (map != null) {
+      return ExtendedHistory.fromMap(map);
+    } else {
+      return null;
+    }
+  }
+
+  Future<ExtendedHistory?> getHistory(String deviceId, int dataTime) async {
+    String sql = '''
+    SELECT h.id, h.deviceId, h.dataTime, h.samplingRate, h.rotationSpeed, h.data, 
+    h.createdAt, d.name AS deviceName FROM history h 
+    LEFT JOIN devices d ON d.id = h.deviceId 
+    WHERE h.deviceId = d.id AND deviceId = ? AND h.dataTime = ?
+  ''';
+
+    final Map<String, dynamic>? map = await _dbUtils.querySingle(sql, [
+      deviceId,
+      dataTime,
+    ]);
 
     if (map != null) {
       return ExtendedHistory.fromMap(map);
@@ -60,8 +79,7 @@ class HistoryDatabase {
   }
 
   Future<void> updateHistory(History history) async {
-    String sql =
-    '''
+    String sql = '''
       UPDATE history 
       SET dataTime = ?, samplingRate = ?, rotationSpeed = ?, data = ?, createdAt = ?
       WHERE id = ?
