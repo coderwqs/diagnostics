@@ -92,9 +92,9 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
       _features.addAll(features);
       _featureCurrentPage++;
       _isFeatureLoading = false;
-
-      _onFeaturesChanged();
     });
+
+    _onFeaturesChanged();
   }
 
   void _updateSelectedFeature(Feature feature) {
@@ -105,7 +105,7 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   void _onFeaturesChanged() {
-    if (_featureCurrentPage == 1 && _selectedFeature == null) {
+    if (_featureCurrentPage == 1 && _selectedFeature == null && _features.isNotEmpty) {
       _updateSelectedFeature(_features.first);
     }
   }
@@ -489,6 +489,8 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
                         }
 
                         final feature = _features[index];
+                        print("+++++++++++++++++++++++++++++++ ${feature.dataTime}");
+
                         return Material(
                           color: Colors.transparent,
                           child: InkWell(
