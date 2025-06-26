@@ -30,15 +30,11 @@ class WaveformChart extends StatefulWidget {
 
 class _WaveformChartState extends State<WaveformChart> {
   List<DataPoint> _waveform = [];
+  double _maxY = 10;
+  double _minY = 0;
+  double _interval = 0.1;
+
   late final List<Color> gradientColors;
-
-  double _calculateGridInterval(List<DataPoint> data) {
-    final maxValue = data.map((e) => e.value).reduce((a, b) => a > b ? a : b);
-
-    final minValue = data.map((e) => e.value).reduce((a, b) => a < b ? a : b);
-
-    return double.parse(((maxValue - minValue) / 8).toStringAsFixed(1));
-  }
 
   @override
   void initState() {
@@ -49,6 +45,12 @@ class _WaveformChartState extends State<WaveformChart> {
     DateTime ts = DateTime.fromMillisecondsSinceEpoch(widget.dataTime);
 
     if (widget.waveform.isNotEmpty) {
+      _maxY = widget.waveform.reduce((a, b) => a > b ? a : b);
+
+      _minY = widget.waveform.reduce((a, b) => a < b ? a : b);
+
+      _interval = double.parse(((_maxY - _minY) / 8).toStringAsFixed(1));
+
       _waveform = List.generate(widget.waveform.length, (i) {
         return DataPoint(
           timestamp: ts.subtract(
@@ -67,6 +69,10 @@ class _WaveformChartState extends State<WaveformChart> {
             LineChartData(
               lineTouchData: LineTouchData(
                 enabled: true,
+                getTouchLineStart: (LineChartBarData barData, int spotIndex) =>
+                _minY,
+                getTouchLineEnd: (LineChartBarData barData, int spotIndex) =>
+                _maxY,
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (List<LineBarSpot> touchedSpots) {
                     return touchedSpots.map((spot) {
@@ -84,16 +90,39 @@ class _WaveformChartState extends State<WaveformChart> {
                   tooltipBorderRadius: BorderRadius.circular(8),
                   tooltipPadding: const EdgeInsets.all(12),
                   tooltipMargin: 8,
-                  getTooltipColor: (LineBarSpot touchedSpot) =>
-                      widget.colorScheme.primary.withValues(alpha: 0.9),
+                  getTooltipColor: (LineBarSpot touchedSpot) => Colors.grey,
                   fitInsideHorizontally: true,
                   fitInsideVertically: true,
                 ),
+                getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+                  return spotIndexes.map((spotIndex) {
+                    final FlSpot spot = barData.spots[spotIndex];
+                    // 自定义指示器样式
+                    return TouchedSpotIndicatorData(
+                      FlLine(
+                        color: Colors.red,
+                        strokeWidth: 1,
+                        dashArray: [3, 2]
+                      ),
+                      FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 3,
+                            color: Colors.red,
+                            strokeWidth: 2,
+                            strokeColor: Colors.white,
+                          );
+                        },
+                      ),
+                    );
+                  }).toList();
+                },
               ),
               gridData: FlGridData(
                 show: true,
                 drawVerticalLine: false,
-                horizontalInterval: _calculateGridInterval(_waveform),
+                horizontalInterval: _interval,
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: widget.colorScheme.outline.withValues(alpha: 0.2),
                   strokeWidth: 1,
@@ -104,7 +133,7 @@ class _WaveformChartState extends State<WaveformChart> {
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: _calculateGridInterval(_waveform),
+                    interval: _interval,
                     getTitlesWidget: (value, meta) {
                       return Padding(
                         padding: const EdgeInsets.only(right: 8.0),
@@ -164,12 +193,8 @@ class _WaveformChartState extends State<WaveformChart> {
               ),
               minX: 0,
               maxX: _waveform.length.toDouble() - 1,
-              minY: _waveform
-                  .map((e) => e.value)
-                  .reduce((a, b) => a < b ? a : b),
-              maxY: _waveform
-                  .map((e) => e.value)
-                  .reduce((a, b) => a > b ? a : b),
+              minY: _minY,
+              maxY: _maxY,
               lineBarsData: [
                 LineChartBarData(
                   spots: _waveform.asMap().entries.map((entry) {
@@ -177,15 +202,15 @@ class _WaveformChartState extends State<WaveformChart> {
                   }).toList(),
                   isCurved: true,
                   curveSmoothness: 0.3,
-                  color: widget.colorScheme.primary,
-                  barWidth: 3,
+                  color: Colors.green,
+                  barWidth: 1,
                   shadow: BoxShadow(
                     color: widget.colorScheme.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                   belowBarData: BarAreaData(
-                    show: true,
+                    show: false,
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -216,11 +241,11 @@ class _WaveformChartState extends State<WaveformChart> {
                       return index % 10 == 0;
                     },
                   ),
-                  gradient: LinearGradient(
-                    colors: gradientColors,
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
+                  // gradient: LinearGradient(
+                  //   colors: gradientColors,
+                  //   begin: Alignment.centerLeft,
+                  //   end: Alignment.centerRight,
+                  // ),
                 ),
               ],
             ),

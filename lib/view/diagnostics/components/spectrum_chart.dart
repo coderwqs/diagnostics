@@ -27,17 +27,18 @@ class SpectrumChart extends StatefulWidget {
 
 class _SpectrumChartState extends State<SpectrumChart> {
   List<DataPoint> _spectrum = [];
+  final double _minY = 0;
+  double _maxY = 10;
 
   @override
   void initState() {
     super.initState();
 
     if (widget.spectrum.isNotEmpty) {
+      _maxY = widget.spectrum.reduce((a, b) => a > b ? a : b);
+
       _spectrum = List.generate(widget.spectrum.length, (i) {
-        return DataPoint(
-          value: widget.spectrum[i],
-          frequency: (i + 1) * 5.0, // 假设频率以 5.0 为增量
-        );
+        return DataPoint(value: widget.spectrum[i], frequency: (i + 1) * 5.0);
       });
     }
   }
@@ -49,6 +50,33 @@ class _SpectrumChartState extends State<SpectrumChart> {
             LineChartData(
               lineTouchData: LineTouchData(
                 enabled: true,
+                getTouchLineStart: (LineChartBarData barData, int spotIndex) =>
+                    0,
+                getTouchLineEnd: (LineChartBarData barData, int spotIndex) =>
+                    _maxY,
+                getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
+                  return spotIndexes.map((spotIndex) {
+                    final FlSpot spot = barData.spots[spotIndex];
+                    return TouchedSpotIndicatorData(
+                      FlLine(
+                          color: Colors.red,
+                          strokeWidth: 1,
+                          dashArray: [4, 2]
+                      ),
+                      FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) {
+                          return FlDotCirclePainter(
+                            radius: 3,
+                            color: Colors.red,
+                            strokeWidth: 2,
+                            strokeColor: Colors.white,
+                          );
+                        },
+                      ),
+                    );
+                  }).toList();
+                },
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (List<LineBarSpot> touchedSpots) {
                     return touchedSpots.map((spot) {
@@ -63,8 +91,7 @@ class _SpectrumChartState extends State<SpectrumChart> {
                       );
                     }).toList();
                   },
-                  getTooltipColor: (LineBarSpot touchedSpot) =>
-                      widget.colorScheme.primary.withValues(alpha: 0.9),
+                  getTooltipColor: (LineBarSpot touchedSpot) => Colors.grey,
                   tooltipBorderRadius: BorderRadius.circular(8),
                   tooltipPadding: const EdgeInsets.all(8),
                   tooltipMargin: 8,
@@ -77,7 +104,7 @@ class _SpectrumChartState extends State<SpectrumChart> {
                 drawVerticalLine: false,
                 getDrawingHorizontalLine: (value) => FlLine(
                   color: widget.colorScheme.surfaceVariant.withValues(
-                    alpha: 0.3,
+                    alpha: 0.8,
                   ),
                   strokeWidth: 1,
                 ),
@@ -92,7 +119,7 @@ class _SpectrumChartState extends State<SpectrumChart> {
                         style: TextStyle(
                           fontSize: 10,
                           color: widget.colorScheme.onSurface.withValues(
-                            alpha: 0.6,
+                            alpha: 0.8,
                           ),
                         ),
                       );
@@ -106,11 +133,11 @@ class _SpectrumChartState extends State<SpectrumChart> {
                     getTitlesWidget: (value, meta) {
                       if (value % 5 == 0 && value.toInt() < _spectrum.length) {
                         return Text(
-                          '${_spectrum[value.toInt()].frequency.toStringAsFixed(0)}Hz',
+                          _spectrum[value.toInt()].frequency.toStringAsFixed(0),
                           style: TextStyle(
                             fontSize: 10,
                             color: widget.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
+                              alpha: 0.8,
                             ),
                           ),
                         );
@@ -141,8 +168,8 @@ class _SpectrumChartState extends State<SpectrumChart> {
                     return FlSpot(entry.key.toDouble(), entry.value.value);
                   }).toList(),
                   isCurved: false,
-                  color: widget.colorScheme.primary,
-                  barWidth: 2,
+                  color: Colors.green,
+                  barWidth: 1,
                   dotData: FlDotData(
                     show: widget.isShowDot,
                     getDotPainter: (spot, percent, barData, index) {
@@ -164,7 +191,8 @@ class _SpectrumChartState extends State<SpectrumChart> {
               ],
               minX: 0,
               maxX: _spectrum.length.toDouble() - 1,
-              minY: 0,
+              minY: _minY,
+              maxY: _maxY,
             ),
           )
         : Center(
