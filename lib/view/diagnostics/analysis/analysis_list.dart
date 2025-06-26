@@ -111,7 +111,9 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   }
 
   void _onSelectedFeatureChanged() {
-    _fetchDataDetails(_selectedFeature!, shouldRebuildHistory: false);
+    _waveform = [];
+    _spectrum = [];
+    _fetchDataDetails(_selectedFeature!, shouldRebuildHistory: true);
   }
 
   @override
