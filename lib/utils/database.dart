@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 class DatabaseUtils {
   static final DatabaseUtils _instance = DatabaseUtils._internal();
@@ -14,7 +17,15 @@ class DatabaseUtils {
   Future<void> init(List<String> tables, int version) async {
     if (_database != null) return;
 
-    final path = join(await getDatabasesPath(), 'app.db');
+    final appDir = await getApplicationSupportDirectory();
+    final dbDir = p.join(appDir.path, 'databases');
+
+    if (!await Directory(dbDir).exists()) {
+      await Directory(dbDir).create(recursive: true);
+    }
+
+    final path = p.join(dbDir, 'app.db');
+
     try {
       _database = await openDatabase(
         path,

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Analysis Tool
+Comment=A desktop application for data visualization and analysis.
+Exec=/usr/share/diagnostics/diagnosis
+Icon=diagnostics
+Terminal=false
+Type=Application
+Categories=Utility;Application;
+StartupWMClass=diagnostics

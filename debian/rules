@@ -1,0 +1,60 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+%:
+	dh $@ --buildsystem=cmake --without=dwz
+
+override_dh_dwz:
+	@echo "Skipping dwz optimization for Flutter binaries"
+
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
+
+override_dh_auto_configure:
+	@echo "Skipping dh_auto_configure for Flutter"
+
+override_dh_auto_test:
+	@echo "Skipping tests for Flutter project"
+
+override_dh_auto_build:
+	flutter build linux --release
+
+override_dh_auto_install:
+	# 创建目标目录结构
+	mkdir -p debian/diagnostics/usr/share/diagnostics
+	mkdir -p debian/diagnostics/usr/bin
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor
+	mkdir -p debian/diagnostics/usr/share/applications
+
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/16x16/apps/
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/32x32/apps/
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/48x48/apps/
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/64x64/apps/
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/128x128/apps/
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/256x256/apps/
+	mkdir -p debian/diagnostics/usr/share/icons/hicolor/scalable/apps/
+
+	# 安装应用文件
+	cp -r build/linux/x64/release/bundle/* debian/diagnostics/usr/share/diagnostics/
+	
+	# 安装图标（所有尺寸）
+	cp linux/icons/hicolor/16x16/apps/diagnostics.png debian/diagnostics/usr/share/icons/hicolor/16x16/apps/
+	cp linux/icons/hicolor/32x32/apps/diagnostics.png debian/diagnostics/usr/share/icons/hicolor/32x32/apps/
+	cp linux/icons/hicolor/48x48/apps/diagnostics.png debian/diagnostics/usr/share/icons/hicolor/48x48/apps/
+	cp linux/icons/hicolor/64x64/apps/diagnostics.png debian/diagnostics/usr/share/icons/hicolor/64x64/apps/
+	cp linux/icons/hicolor/128x128/apps/diagnostics.png debian/diagnostics/usr/share/icons/hicolor/128x128/apps/
+	cp linux/icons/hicolor/256x256/apps/diagnostics.png debian/diagnostics/usr/share/icons/hicolor/256x256/apps/
+	cp linux/icons/hicolor/scalable/apps/diagnostics.svg debian/diagnostics/usr/share/icons/hicolor/scalable/apps/
+
+	# 安装桌面文件
+	cp debian/diagnostics.desktop debian/diagnostics/usr/share/applications/
+	
+	# 创建可执行文件链接
+	ln -s ../share/diagnostics/diagnostics debian/diagnostics/usr/bin/diagnostics
+
+override_dh_shlibdeps:
+	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info
+
+override_dh_fixperms:
+	dh_fixperms
+	chmod 755 debian/diagnostics/usr/share/diagnostics/diagnosis

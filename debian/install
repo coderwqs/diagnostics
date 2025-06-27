@@ -1,0 +1,14 @@
+# 安装应用主文件
+build/linux/x64/release/bundle/* usr/share/diagnostics
+
+# 安装图标（按尺寸分类）
+linux/icons/hicolor/16x16/apps/diagnostics.png usr/share/icons/hicolor/16x16/apps
+linux/icons/hicolor/32x32/apps/diagnostics.png usr/share/icons/hicolor/32x32/apps
+linux/icons/hicolor/48x48/apps/diagnostics.png usr/share/icons/hicolor/48x48/apps
+linux/icons/hicolor/64x64/apps/diagnostics.png usr/share/icons/hicolor/64x64/apps
+linux/icons/hicolor/128x128/apps/diagnostics.png usr/share/icons/hicolor/128x128/apps
+linux/icons/hicolor/256x256/apps/diagnostics.png usr/share/icons/hicolor/256x256/apps
+linux/icons/hicolor/scalable/apps/diagnostics.svg usr/share/icons/hicolor/scalable/apps
+
+# 安装桌面启动文件
+debian/diagnostics.desktop usr/share/applications
