@@ -4,21 +4,21 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class DataPoint {
-  final DateTime? timestamp;
+  final double? timestamp;
   final double value;
 
   DataPoint({this.timestamp, required this.value});
 }
 
 class WaveformChart extends StatefulWidget {
-  final int dataTime;
   final List<double> waveform;
+  final double samplingRate;
   final bool isShowDot;
   final ColorScheme colorScheme;
 
   const WaveformChart({
     super.key,
-    required this.dataTime,
+    required this.samplingRate,
     required this.waveform,
     required this.colorScheme,
     required this.isShowDot,
@@ -42,22 +42,19 @@ class _WaveformChartState extends State<WaveformChart> {
 
     gradientColors = [widget.colorScheme.primary, widget.colorScheme.tertiary];
 
-    DateTime ts = DateTime.fromMillisecondsSinceEpoch(widget.dataTime);
-
     if (widget.waveform.isNotEmpty) {
       _maxY = widget.waveform.reduce((a, b) => a > b ? a : b);
 
       _minY = widget.waveform.reduce((a, b) => a < b ? a : b);
 
-      _interval = double.parse(((_maxY - _minY) / 8).toStringAsFixed(1));
+      _interval = double.parse(((_maxY - _minY) / 6).toStringAsFixed(1));
 
       _waveform = List.generate(widget.waveform.length, (i) {
-        return DataPoint(
-          timestamp: ts.subtract(
-            Duration(milliseconds: widget.waveform.length - i),
-          ),
-          value: widget.waveform[i],
-        );
+        double duration = widget.waveform.length / widget.samplingRate;
+        double scale = (duration / widget.waveform.length) * i;
+        scale = double.parse(scale.toStringAsFixed(2));
+
+        return DataPoint(timestamp: scale, value: widget.waveform[i]);
       });
     }
   }
@@ -70,15 +67,15 @@ class _WaveformChartState extends State<WaveformChart> {
               lineTouchData: LineTouchData(
                 enabled: true,
                 getTouchLineStart: (LineChartBarData barData, int spotIndex) =>
-                _minY,
+                    _minY,
                 getTouchLineEnd: (LineChartBarData barData, int spotIndex) =>
-                _maxY,
+                    _maxY,
                 touchTooltipData: LineTouchTooltipData(
                   getTooltipItems: (List<LineBarSpot> touchedSpots) {
                     return touchedSpots.map((spot) {
                       final d = _waveform[spot.x.toInt()];
                       return LineTooltipItem(
-                        '${DateFormat('HH:mm:ss.S').format(d.timestamp!)}\n幅值: ${spot.y.toStringAsFixed(2)}',
+                        '${d.timestamp}\n幅值: ${spot.y.toStringAsFixed(2)}',
                         TextStyle(
                           color: widget.colorScheme.onPrimary,
                           fontSize: 12,
@@ -94,30 +91,30 @@ class _WaveformChartState extends State<WaveformChart> {
                   fitInsideHorizontally: true,
                   fitInsideVertically: true,
                 ),
-                getTouchedSpotIndicator: (LineChartBarData barData, List<int> spotIndexes) {
-                  return spotIndexes.map((spotIndex) {
-                    final FlSpot spot = barData.spots[spotIndex];
-                    // 自定义指示器样式
-                    return TouchedSpotIndicatorData(
-                      FlLine(
-                        color: Colors.red,
-                        strokeWidth: 1,
-                        dashArray: [3, 2]
-                      ),
-                      FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) {
-                          return FlDotCirclePainter(
-                            radius: 3,
+                getTouchedSpotIndicator:
+                    (LineChartBarData barData, List<int> spotIndexes) {
+                      return spotIndexes.map((spotIndex) {
+                        final FlSpot spot = barData.spots[spotIndex];
+                        return TouchedSpotIndicatorData(
+                          FlLine(
                             color: Colors.red,
-                            strokeWidth: 2,
-                            strokeColor: Colors.white,
-                          );
-                        },
-                      ),
-                    );
-                  }).toList();
-                },
+                            strokeWidth: 1,
+                            dashArray: [3, 2],
+                          ),
+                          FlDotData(
+                            show: true,
+                            getDotPainter: (spot, percent, barData, index) {
+                              return FlDotCirclePainter(
+                                radius: 3,
+                                color: Colors.red,
+                                strokeWidth: 2,
+                                strokeColor: Colors.white,
+                              );
+                            },
+                          ),
+                        );
+                      }).toList();
+                    },
               ),
               gridData: FlGridData(
                 show: true,
@@ -142,7 +139,7 @@ class _WaveformChartState extends State<WaveformChart> {
                           style: TextStyle(
                             fontSize: 10,
                             color: widget.colorScheme.onSurface.withValues(
-                              alpha: 0.6,
+                              alpha: 0.8,
                             ),
                           ),
                         ),
@@ -154,19 +151,17 @@ class _WaveformChartState extends State<WaveformChart> {
                 bottomTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
-                    interval: (_waveform.length / 5).roundToDouble(),
+                    interval: (_waveform.length / 20).roundToDouble(),
                     getTitlesWidget: (value, meta) {
                       if (value.toInt() < _waveform.length) {
                         return Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Text(
-                            DateFormat(
-                              'ss.S',
-                            ).format(_waveform[value.toInt()].timestamp!),
+                            _waveform[value.toInt()].timestamp.toString(),
                             style: TextStyle(
                               fontSize: 10,
                               color: widget.colorScheme.onSurface.withValues(
-                                alpha: 0.6,
+                                alpha: 0.8,
                               ),
                             ),
                           ),
