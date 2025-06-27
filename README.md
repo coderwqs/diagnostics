@@ -17,6 +17,8 @@ samples, guidance on mobile development, and a full API reference.
 
 ## Package
 ```shell
+sudo apt-get install debhelper clang cmake ninja-build pkg-config libgtk-3-dev libsqlite3-dev
+
 dpkg-buildpackage -us -uc
 
 sudo dpkg -i ../diagnostics_1.0.0-1_amd64.deb
