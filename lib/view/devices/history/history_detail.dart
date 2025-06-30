@@ -563,20 +563,25 @@ class _DetailPageState extends State<DetailPage> {
   }
 
   Widget _buildLineChart(AppLocalizations l10n, List<double> data) {
+    // 计算间隔一次
+    final double interval = _calculateChartInterval(data.length);
+    final double minY = data.reduce((a, b) => a < b ? a : b) * 0.95;
+    final double maxY = data.reduce((a, b) => a > b ? a : b) * 1.05;
+
     return SfCartesianChart(
       plotAreaBorderWidth: 0,
       primaryXAxis: NumericAxis(
         minimum: 0,
         maximum: data.length.toDouble(),
-        interval: _calculateChartInterval(data.length),
+        interval: interval,
         majorGridLines: MajorGridLines(width: 0),
       ),
       primaryYAxis: NumericAxis(
-        minimum: data.reduce((a, b) => a < b ? a : b) * 0.95,
-        maximum: data.reduce((a, b) => a > b ? a : b) * 1.05,
-        interval: _calculateChartInterval(data.length),
+        minimum: minY,
+        maximum: maxY,
+        interval: interval,
         majorGridLines: MajorGridLines(
-          color: Colors.grey.withValues(alpha: 0.2),
+          color: Colors.grey.withOpacity(0.2),
           width: 1,
         ),
       ),

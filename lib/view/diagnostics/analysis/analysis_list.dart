@@ -10,6 +10,13 @@ import 'package:diagnosis/view/diagnostics/components/waveform_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+class TabItem {
+  final String name;
+  final IconData icon;
+
+  const TabItem(this.name, this.icon);
+}
+
 class DataAnalysisPage extends StatefulWidget {
   const DataAnalysisPage({super.key});
 
@@ -17,7 +24,8 @@ class DataAnalysisPage extends StatefulWidget {
   createState() => _DataAnalysisPageState();
 }
 
-class _DataAnalysisPageState extends State<DataAnalysisPage> {
+class _DataAnalysisPageState extends State<DataAnalysisPage>
+    with SingleTickerProviderStateMixin {
   final HistoryService _historyService = HistoryService();
   final FeaturesService _featuresService = FeaturesService();
   final DeviceService _deviceService = DeviceService();
@@ -39,6 +47,16 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   int _featureCurrentPage = 0;
   final int _featureItemsPerPage = 10;
 
+  late TabController _tabController;
+  int _tabIndex = 0;
+  final List<TabItem> algorithms = [
+    TabItem("频谱分析", Icons.analytics),
+    TabItem("包络分析", Icons.signal_wifi_4_bar),
+    TabItem("小波分析", Icons.waves),
+    TabItem("倒谱", Icons.graphic_eq),
+    TabItem("阶次分析", Icons.filter_4),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +66,47 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     _historyScrollController = ScrollController();
     _historyScrollController.addListener(_historyScrollListener);
 
+    _tabController = TabController(length: algorithms.length, vsync: this);
+    _tabController.addListener(() {
+      if (_tabController.indexIsChanging) {
+        setState(() {
+          _tabIndex = _tabController.index;
+        });
+      }
+    });
+
     _loadMoreDevices();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _historyScrollController.dispose();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<double> _calculateAlgorithm(int index, List<double> signal) {
+    List<double> result = [];
+    switch (index) {
+      case 0:
+        result = _alg.calculateSpectrum(signal);
+        break;
+      case 1:
+        result = _alg.calculateEnvelope(signal);
+        break;
+      case 2:
+        result = _alg.waveletTransform(signal);
+        break;
+      case 3:
+        result = _alg.cepstrum(signal);
+        break;
+      case 4:
+        result = _alg.calculateOrder(signal, 2);
+        break;
+    }
+
+    return result;
   }
 
   void _onDeviceChanged(Device device) {
@@ -61,13 +119,6 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     });
 
     _loadMoreFeatureData(device);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    _historyScrollController.dispose();
-    super.dispose();
   }
 
   void _scrollListener() {
@@ -126,13 +177,6 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     });
   }
 
-  Future<List<ExtendedHistory>> fetchHistoryData({
-    int page = 1,
-    int limit = 10,
-  }) async {
-    return _historyService.getAllHistories(page, limit);
-  }
-
   Future<void> _loadMoreFeatureData(Device device) async {
     if (_isFeatureLoading || _selectedDevice == null) return;
 
@@ -181,6 +225,8 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
+    final mediaQueryWidth = MediaQuery.of(context).size.width;
+    final mediaQueryHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
       appBar: AppBar(title: const Text('设备数据分析'), elevation: 0),
@@ -188,18 +234,28 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
         color: colorScheme.surfaceVariant.withValues(alpha: 0.1),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildLeftPanel(colorScheme, textTheme),
-            Expanded(child: _buildRightPanel(colorScheme, textTheme)),
+            _buildLeftPanel(colorScheme, textTheme, mediaQueryWidth * 0.19),
+            _buildRightPanel(
+              colorScheme,
+              textTheme,
+              mediaQueryWidth * 0.8,
+              mediaQueryHeight,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLeftPanel(ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildLeftPanel(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    double width,
+  ) {
     return Container(
-      width: 320,
+      width: width,
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
@@ -529,8 +585,13 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
     );
   }
 
-  Widget _buildRightPanel(ColorScheme colorScheme, TextTheme textTheme) {
-    if(_selectedFeature == null) {
+  Widget _buildRightPanel(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+    double width,
+    double height,
+  ) {
+    if (_selectedFeature == null) {
       return Center(
         child: Text(
           '暂无数据',
@@ -559,160 +620,132 @@ class _DataAnalysisPageState extends State<DataAnalysisPage> {
 
         final history = snapshot.data!;
         final double samplingRate = history.samplingRate;
-        final List<double> waveformData = history.data;
+        final List<double> waveform = history.data;
 
-        final spectrum = _alg.calculateSpectrum(waveformData);
+        List<double> data = _calculateAlgorithm(_tabIndex, waveform);
 
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildDeviceInfoCard(colorScheme, textTheme),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: 280,
-                    maxHeight: MediaQuery.of(context).size.height * 0.4,
+        return Container(
+          width: width,
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 12,
+                offset: const Offset(2, 0),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Tab栏
+              Container(
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceVariant.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  labelColor: colorScheme.primary,
+                  unselectedLabelColor: colorScheme.onSurface.withOpacity(0.6),
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: colorScheme.primary.withValues(alpha: 0.1),
                   ),
-                  child: _buildChartCard(
-                    colorScheme: colorScheme,
-                    textTheme: textTheme,
-                    title: '时域波形',
-                    icon: Icons.show_chart,
-                    child: WaveformChart(
-                      samplingRate: samplingRate,
-                      waveform: waveformData,
-                      colorScheme: colorScheme,
-                      isShowDot: false,
-                    ),
+                  tabs: List.generate(algorithms.length, (index) {
+                    return Tab(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(algorithms[index].icon, size: 16),
+                          SizedBox(width: 4),
+                          Text(algorithms[index].name),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+              // Tab内容
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: algorithms
+                        .map(
+                          (TabItem tab) => _buildAlgorithmView(
+                            colorScheme: colorScheme,
+                            textTheme: textTheme,
+                            waveformData: waveform,
+                            spectrum: data,
+                            samplingRate: samplingRate,
+                            height: height,
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: 280,
-                    maxHeight: MediaQuery.of(context).size.height * 0.4,
-                  ),
-                  child: _buildChartCard(
-                    colorScheme: colorScheme,
-                    textTheme: textTheme,
-                    title: '频域频谱',
-                    icon: Icons.bar_chart,
-                    child: SpectrumChart(
-                      spectrum: spectrum,
-                      colorScheme: colorScheme,
-                      isShowDot: false,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
     );
   }
 
-  Widget _buildDeviceInfoCard(ColorScheme colorScheme, TextTheme textTheme) {
-    if (_selectedDevice == null || _selectedFeature == null) {
-      return const SizedBox();
-    }
-
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.analytics,
-                size: 28,
-                color: colorScheme.primary,
-              ),
+  Widget _buildAlgorithmView({
+    required ColorScheme colorScheme,
+    required TextTheme textTheme,
+    required List<double> waveformData,
+    required List<double> spectrum,
+    required double samplingRate,
+    required double height,
+  }) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // 波形图
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: 280,
+              maxHeight: height * 0.41,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _selectedDevice!.name,
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '最新记录: ${DateFormat('yyyy-MM-dd HH:mm').format(DateTime.fromMillisecondsSinceEpoch(_selectedFeature!.dataTime!))}',
-                    style: textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
+            child: _buildChartCard(
+              colorScheme: colorScheme,
+              textTheme: textTheme,
+              title: '时域波形',
+              icon: Icons.show_chart,
+              child: WaveformChart(
+                samplingRate: samplingRate,
+                waveform: waveformData,
+                colorScheme: colorScheme,
+                isShowDot: false,
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  _selectedFeature!.rms.toStringAsFixed(2),
-                  style: textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: _getValueColor(_selectedFeature!.rms),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(_selectedFeature!.rms),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Text(
-                    _getStatusLabel(_selectedFeature!.rms),
-                    style: textTheme.labelSmall?.copyWith(
-                      color: _getStatusTextColor(_selectedFeature!.rms),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+          ),
+          const SizedBox(height: 12),
+          // 频谱图
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: 280,
+              maxHeight: height * 0.41,
             ),
-          ],
-        ),
+            child: _buildChartCard(
+              colorScheme: colorScheme,
+              textTheme: textTheme,
+              title: '频域频谱',
+              icon: Icons.bar_chart,
+              child: SpectrumChart(
+                spectrum: spectrum,
+                colorScheme: colorScheme,
+                isShowDot: false,
+              ),
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  String _getStatusLabel(double value) {
-    if (value > 8) return '危险';
-    if (value > 5) return '警告';
-    return '正常';
-  }
-
-  Color _getStatusColor(double value) {
-    if (value > 8) return Colors.red.withValues(alpha: 0.2);
-    if (value > 5) return Colors.orange.withValues(alpha: 0.2);
-    return Colors.green.withValues(alpha: 0.2);
-  }
-
-  Color _getStatusTextColor(double value) {
-    if (value > 8) return Colors.red;
-    if (value > 5) return Colors.orange;
-    return Colors.green;
   }
 
   Color _getValueColor(double value) {

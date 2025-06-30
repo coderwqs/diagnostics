@@ -41,8 +41,6 @@ class AlgorithmUtils {
       (i) => Complex(signal[i], 0),
     );
     List<Complex> fftResult = fft(complexSignal);
-
-    // 计算频谱幅度
     return fftResult.map((c) => c.modulus()).toList();
   }
 
@@ -69,6 +67,38 @@ class AlgorithmUtils {
       }
     }
     return peak;
+  }
+
+  // 小波变换 (简单的 Haar 小波)
+  List<double> waveletTransform(List<double> signal) {
+    int n = signal.length;
+    List<double> result = List.filled(n, 0);
+    for (int i = 0; i < n ~/ 2; i++) {
+      result[i] = (signal[2 * i] + signal[2 * i + 1]) / sqrt(2);
+      result[i + n ~/ 2] = (signal[2 * i] - signal[2 * i + 1]) / sqrt(2);
+    }
+    return result;
+  }
+
+  // 倒谱计算
+  List<double> cepstrum(List<double> signal) {
+    List<double> spectrum = calculateSpectrum(signal);
+    List<double> logSpectrum = spectrum.map((s) => log(s)).toList();
+    List<Complex> complexSignal = List.generate(
+      logSpectrum.length,
+      (i) => Complex(logSpectrum[i], 0),
+    );
+    List<Complex> fftResult = fft(complexSignal);
+    return fftResult.map((c) => c.real).toList();
+  }
+
+  // 阶次计算
+  List<double> calculateOrder(List<double> signal, int order) {
+    List<double> result = List.filled(signal.length, 0);
+    for (int i = 0; i < signal.length; i++) {
+      result[i] = pow(signal[i], order).toDouble();
+    }
+    return result;
   }
 }
 
