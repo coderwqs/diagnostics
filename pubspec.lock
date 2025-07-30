@@ -129,6 +129,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.7"
+  event_bus:
+    dependency: transitive
+    description:
+      name: event_bus
+      sha256: "1a55e97923769c286d295240048fc180e7b0768902c3c2e869fe059aafa15304"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "2.0.1"
   excel:
     dependency: "direct main"
     description:
@@ -477,6 +485,14 @@ packages:
       url: "https://pub.flutter-io.cn"
     source: hosted
     version: "2.0.0"
+  mqtt_client:
+    dependency: "direct main"
+    description:
+      name: mqtt_client
+      sha256: "8c79275452446d0c767b4ce3c25d02570944b2cf70179f0eb197fea7d98c6056"
+      url: "https://pub.flutter-io.cn"
+    source: hosted
+    version: "10.10.0"
   msix:
     dependency: "direct dev"
     description:

@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:diagnosis/l10n/app_localizations.dart';
 import 'package:diagnosis/service/devices.dart';
+import 'package:diagnosis/utils/mqtt_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -20,6 +22,8 @@ class DeviceManagementPage extends StatefulWidget {
 
 class _DeviceManagementPageState extends State<DeviceManagementPage> {
   final DeviceService _deviceService = DeviceService();
+  final _mqttService = MqttService();
+
   List<Device> _devices = [];
   List<Device> _filteredDevices = [];
   final TextEditingController _searchController = TextEditingController();
@@ -29,8 +33,16 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   @override
   void initState() {
     super.initState();
+    _mqttService.connect(broker: 'localhost', clientId: 'client_1001');
     _fetchDevices();
     _searchController.addListener(_filterDevices);
+  }
+
+  @override
+  void dispose() {
+    _mqttService.disconnect();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDevices() async {
@@ -160,28 +172,10 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
             device: device,
             onTap: () => _showDeviceDetails(device),
             onToggle: (value) => _toggleDevice(l10n, device, value),
-            onEdit: () {
-              print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-              _editDevice(context, device);
-            },
-            onDelete: () {
-              _deviceService.deleteDevice(device.id);
-              _fetchDevices();
-            },
-            onEnabled: () {
-              _deviceService.updateDeviceStatus(
-                device.id,
-                DeviceStatus.online.value,
-              );
-              _fetchDevices();
-            },
-            onDisabled: () {
-              _deviceService.updateDeviceStatus(
-                device.id,
-                DeviceStatus.offline.value,
-              );
-              _fetchDevices();
-            },
+            onEdit: () => _editDevice(context, device),
+            onDelete: () => _deleteDevice(device),
+            onEnabled: () => _enableDevice(device),
+            onDisabled: () => _disableDevice(device),
           );
         },
       ),
@@ -216,17 +210,11 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   void _toggleDevice(AppLocalizations l10n, Device device, bool value) {
     var d = _devices.map((d) {
       if (d.id == device.id) {
-        if (value) {
-          // 订阅主题
-          print('已订阅主题: ${device.id}');
-        } else {
-          // 取消订阅
-          print('已取消订阅主题: ${device.id}');
-        }
-
         DeviceStatus status = value
             ? DeviceStatus.online
             : DeviceStatus.offline;
+
+        _handleSubscription(device.id, value);
 
         _deviceService.updateDeviceStatus(device.id, status.value);
 
@@ -284,10 +272,30 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
     );
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  void _deleteDevice(Device device) {
+    _deviceService.deleteDevice(device.id);
+    _fetchDevices();
+  }
+
+  void _enableDevice(Device device) {
+    _handleSubscription(device.id, true);
+    _deviceService.updateDeviceStatus(device.id, DeviceStatus.online.value);
+    _fetchDevices();
+  }
+
+  void _disableDevice(Device device) {
+    _handleSubscription(device.id, false);
+    _deviceService.updateDeviceStatus(device.id, DeviceStatus.offline.value);
+    _fetchDevices();
+  }
+
+  void _handleSubscription(String channelId, bool flag) {
+    if (flag) {
+      _mqttService.subscribeToTopic('channels/$channelId/messages');
+      _mqttService.listenToMessages();
+    } else {
+      _mqttService.unsubscribeFromTopic('channels/$channelId/messages');
+    }
   }
 }
 
@@ -473,7 +481,10 @@ class DeviceCard extends StatelessWidget {
       ],
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
-        side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.2), width: 1),
+        side: BorderSide(
+          color: theme.dividerColor.withValues(alpha: 0.2),
+          width: 1,
+        ),
       ),
     );
 
@@ -523,8 +534,7 @@ class DeviceCard extends StatelessWidget {
     final diff = now.difference(time);
 
     if (diff.inSeconds < 60) return l10n.app_just_now;
-    if (diff.inMinutes < 60)
-      return '${diff.inMinutes}${l10n.app_minute_ago}';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}${l10n.app_minute_ago}';
     if (diff.inHours < 24) return '${diff.inHours}${l10n.app_hour_ago}';
     return '${diff.inDays}${l10n.app_day_ago}';
   }
