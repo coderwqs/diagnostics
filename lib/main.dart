@@ -33,7 +33,7 @@ void main() async {
 
   if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
     databaseFactory = databaseFactoryFfi;
-    DatabaseUtils().init(TABLES_SCHEMA, 9);
+    DatabaseUtils().init(TABLES_SCHEMA, 1);
   }
 
   final prefs = await SharedPreferences.getInstance();
