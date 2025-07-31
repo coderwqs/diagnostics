@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:diagnosis/utils/database.dart';
+import 'package:diagnosis/utils/mqtt_service.dart';
 import 'package:provider/provider.dart';
 import 'package:diagnosis/config/routes.dart';
 import 'package:flutter/material.dart';
@@ -38,9 +39,17 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final savedLanguage = prefs.getString('language') ?? 'zh';
 
+  final mqttService = MqttService();
+  await mqttService.connect(broker: 'localhost', clientId: 'client_123');
+
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => LanguageProvider(Locale(savedLanguage)),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => LanguageProvider(Locale(savedLanguage)),
+        ),
+        ChangeNotifierProvider.value(value: mqttService)
+      ],
       child: DiagnosticsApp(),
     ),
   );

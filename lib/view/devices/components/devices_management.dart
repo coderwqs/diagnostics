@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:diagnosis/model/device.dart';
+import 'package:provider/provider.dart';
 
 import 'add_device.dart';
 import 'device_detail.dart';
@@ -22,7 +23,6 @@ class DeviceManagementPage extends StatefulWidget {
 
 class _DeviceManagementPageState extends State<DeviceManagementPage> {
   final DeviceService _deviceService = DeviceService();
-  final _mqttService = MqttService();
 
   List<Device> _devices = [];
   List<Device> _filteredDevices = [];
@@ -33,14 +33,12 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   @override
   void initState() {
     super.initState();
-    _mqttService.connect(broker: 'localhost', clientId: 'client_1001');
     _fetchDevices();
     _searchController.addListener(_filterDevices);
   }
 
   @override
   void dispose() {
-    _mqttService.disconnect();
     _searchController.dispose();
     super.dispose();
   }
@@ -160,6 +158,8 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
   }
 
   Widget _buildDeviceList(AppLocalizations l10n) {
+    MqttService mqttService = Provider.of<MqttService>(context);
+
     return RefreshIndicator(
       onRefresh: _refreshDevices,
       child: ListView.builder(
@@ -171,11 +171,11 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
           return DeviceCard(
             device: device,
             onTap: () => _showDeviceDetails(device),
-            onToggle: (value) => _toggleDevice(l10n, device, value),
+            onToggle: (value) => _toggleDevice(mqttService, l10n, device, value),
             onEdit: () => _editDevice(context, device),
             onDelete: () => _deleteDevice(device),
-            onEnabled: () => _enableDevice(device),
-            onDisabled: () => _disableDevice(device),
+            onEnabled: () => _enableDevice(mqttService, device),
+            onDisabled: () => _disableDevice(mqttService, device),
           );
         },
       ),
@@ -207,14 +207,14 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
     );
   }
 
-  void _toggleDevice(AppLocalizations l10n, Device device, bool value) {
+  void _toggleDevice(MqttService mqttService, AppLocalizations l10n, Device device, bool value) {
     var d = _devices.map((d) {
       if (d.id == device.id) {
         DeviceStatus status = value
             ? DeviceStatus.online
             : DeviceStatus.offline;
 
-        _handleSubscription(device.id, value);
+        _handleSubscription(mqttService, device.id, value);
 
         _deviceService.updateDeviceStatus(device.id, status.value);
 
@@ -277,24 +277,27 @@ class _DeviceManagementPageState extends State<DeviceManagementPage> {
     _fetchDevices();
   }
 
-  void _enableDevice(Device device) {
-    _handleSubscription(device.id, true);
+  void _enableDevice(MqttService mqttService, Device device) {
+    _handleSubscription(mqttService, device.id, true);
     _deviceService.updateDeviceStatus(device.id, DeviceStatus.online.value);
     _fetchDevices();
   }
 
-  void _disableDevice(Device device) {
-    _handleSubscription(device.id, false);
+  void _disableDevice(MqttService mqttService, Device device) {
+    _handleSubscription(mqttService, device.id, false);
     _deviceService.updateDeviceStatus(device.id, DeviceStatus.offline.value);
     _fetchDevices();
   }
 
-  void _handleSubscription(String channelId, bool flag) {
+  void _handleSubscription(MqttService mqttService, String channelId, bool flag) {
     if (flag) {
-      _mqttService.subscribeToTopic('channels/$channelId/messages');
-      _mqttService.listenToMessages();
+      mqttService.subscribeToTopic('channels/$channelId/messages');
+      // 确保只在连接成功后调用一次
+      if (mqttService.isConnected && !mqttService.isListening) {
+        mqttService.listenToMessages();
+      }
     } else {
-      _mqttService.unsubscribeFromTopic('channels/$channelId/messages');
+      mqttService.unsubscribeFromTopic('channels/$channelId/messages');
     }
   }
 }

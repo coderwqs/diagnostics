@@ -1,27 +1,27 @@
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:flutter/material.dart';
 
 typedef MqttMessageHandler = void Function(String topic, String message);
 typedef MqttTopicHandler = void Function(String topic);
 typedef MqttVoidHandler = void Function();
 
-class MqttService {
+class MqttService with ChangeNotifier {
+  static final MqttService _instance = MqttService._internal();
+
+  factory MqttService() => _instance;
+
+  MqttService._internal();
+
   late final MqttServerClient client;
   final List<String> subscribedTopics = [];
+  bool isListening = false;
 
   MqttVoidHandler? onConnectedCallback;
   MqttVoidHandler? onDisconnectedCallback;
   MqttTopicHandler? onSubscribedCallback;
   MqttTopicHandler? onUnsubscribedCallback;
   MqttMessageHandler? onMessageCallback;
-
-  MqttService({
-    this.onConnectedCallback,
-    this.onDisconnectedCallback,
-    this.onSubscribedCallback,
-    this.onUnsubscribedCallback,
-    this.onMessageCallback,
-  });
 
   /// 连接到 MQTT Broker
   Future<bool> connect({
@@ -57,7 +57,8 @@ class MqttService {
 
       if (client.connectionStatus?.state == MqttConnectionState.connected) {
         print('MQTT 连接成功！');
-        listenToMessages(); // 自动开始监听消息
+        listenToMessages();
+        notifyListeners();
         return true;
       } else {
         print('MQTT 连接失败: ${client.connectionStatus?.returnCode}');
@@ -110,6 +111,7 @@ class MqttService {
 
     try {
       print('正在取消订阅主题: $topic');
+      print('当前连接状态: ${client.connectionStatus?.state}');
       client.unsubscribe(topic);
       subscribedTopics.remove(topic);
       onUnsubscribedCallback?.call(topic);
@@ -146,6 +148,9 @@ class MqttService {
 
   /// 监听消息
   void listenToMessages() {
+    if (isListening) return;
+    isListening = true;
+
     client.updates?.listen(
       (List<MqttReceivedMessage<MqttMessage>> messages) {
         try {
@@ -164,6 +169,7 @@ class MqttService {
       },
       onError: (error) {
         print('消息监听错误: $error');
+        isListening = false;
       },
     );
   }
@@ -189,12 +195,14 @@ class MqttService {
   void _onConnected() {
     print('MQTT 连接成功！');
     onConnectedCallback?.call();
+    notifyListeners(); // 通知状态变化
   }
 
   /// 内部回调: 断开连接
   void _onDisconnected() {
     print('MQTT 连接断开');
     onDisconnectedCallback?.call();
+    notifyListeners(); // 通知状态变化
   }
 
   /// 内部回调: 订阅成功
